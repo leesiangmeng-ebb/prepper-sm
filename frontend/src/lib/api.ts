@@ -175,7 +175,7 @@ export async function updateStructuredInstructions(
 ): Promise<Recipe> {
   return fetchApi<Recipe>(`/recipes/${recipeId}/instructions/structured`, {
     method: 'PATCH',
-    body: JSON.stringify({ instructions_structured: structured }),
+    body: JSON.stringify(structured),
   });
 }
 

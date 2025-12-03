@@ -26,6 +26,7 @@ function DraggableIngredientCard({ ingredient }: { ingredient: Ingredient }) {
   return (
     <div
       ref={setNodeRef}
+      data-ingredient-card
       className={cn(
         'flex items-center gap-2 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800',
         isDragging && 'opacity-50'
@@ -167,7 +168,17 @@ export function RightPanel() {
       </div>
 
       {/* Ingredient List */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div
+        className="flex-1 overflow-y-auto p-3"
+        onDoubleClick={(e) => {
+          // Only trigger if clicking on the container itself, not on ingredients
+          if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-ingredient-list]')) {
+            if (!(e.target as HTMLElement).closest('[data-ingredient-card]')) {
+              setShowForm(true);
+            }
+          }
+        }}
+      >
         {showForm && (
           <div className="mb-3">
             <NewIngredientForm onClose={() => setShowForm(false)} />
@@ -181,9 +192,12 @@ export function RightPanel() {
             Failed to load ingredients
           </div>
         ) : filteredIngredients.length === 0 ? (
-          <div className="py-8 text-center">
+          <div className="py-8 text-center" data-ingredient-list>
             <p className="text-sm text-zinc-500">
               {search ? 'No ingredients found' : 'No ingredients yet'}
+            </p>
+            <p className="mt-1 text-xs text-zinc-400">
+              Double-click anywhere to add one
             </p>
             {!search && !showForm && (
               <Button
@@ -198,9 +212,9 @@ export function RightPanel() {
             )}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2" data-ingredient-list>
             <p className="mb-2 text-xs text-zinc-500">
-              Drag ingredients to add them to a recipe
+              Drag to add to recipe • Double-click to create new
             </p>
             {filteredIngredients.map((ingredient) => (
               <DraggableIngredientCard
