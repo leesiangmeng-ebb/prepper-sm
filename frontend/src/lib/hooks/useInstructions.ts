@@ -23,13 +23,26 @@ export function useUpdateRawInstructions() {
 
 export function useParseInstructions() {
   return useMutation({
-    mutationFn: ({
-      recipeId,
+    mutationFn: async ({
       instructionsRaw,
     }: {
       recipeId: number;
       instructionsRaw: string;
-    }) => api.parseInstructions(recipeId, { instructions_raw: instructionsRaw }),
+    }): Promise<InstructionsStructured> => {
+      // Call our Next.js API route for AI-powered parsing
+      const response = await fetch('/api/parse-instructions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instructions_raw: instructionsRaw }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to parse instructions');
+      }
+
+      return response.json();
+    },
   });
 }
 

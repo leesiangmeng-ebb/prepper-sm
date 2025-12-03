@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Wand2 } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { useAppState } from '@/lib/store';
 import {
   useUpdateRecipe,
@@ -119,8 +119,17 @@ export function Instructions({ recipe }: InstructionsProps) {
               onClick={handleFormat}
               disabled={parseInstructions.isPending || !rawText.trim()}
             >
-              <Wand2 className="h-4 w-4" />
-              {parseInstructions.isPending ? 'Formatting...' : 'Format into steps'}
+              {parseInstructions.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Parsing with AI...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Format into steps
+                </>
+              )}
             </Button>
           </div>
         </div>

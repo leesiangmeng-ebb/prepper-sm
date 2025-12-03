@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.0.5] - 2025-12-03
+
+### Added
+
+#### AI-Powered Instructions Parsing
+
+Integrated Vercel AI SDK with OpenAI GPT-5.1 to transform freeform recipe instructions into structured steps.
+
+**Stack**: Vercel AI SDK, `@ai-sdk/openai`, Zod schema validation
+
+**Features**:
+- Natural language → structured JSON with `order`, `text`, `timer_seconds`, `temperature_c`
+- Automatic duration extraction (e.g., "5 minutes" → 300 seconds)
+- Automatic temperature conversion (e.g., "350°F" → 177°C)
+- Loading state with animated spinner
+
+**Files**:
+- `frontend/src/app/api/parse-instructions/route.ts` — Next.js API route
+- `frontend/.env.example` — Added `OPENAI_API_KEY` placeholder
+
+**Docs**: `docs/completions/ai-instructions-parsing.md`
+
+#### UX Improvements
+
+**Recipe Delete** — Hover-reveal trash icon with click-twice-to-confirm pattern
+- Appears on hover, first click arms (turns red), second click confirms
+- Auto-resets after 2 seconds if not confirmed
+
+**Double-Click to Create Ingredient** — Double-click empty space in ingredients panel to open new ingredient form
+- Reduces friction for rapid ingredient entry
+- Updated hint: "Drag to add to recipe • Double-click to create new"
+
+**Files**: `LeftPanel.tsx`, `RightPanel.tsx`
+
+### Fixed
+
+- **CORS**: Added `https://www.reciperep.com` and `https://reciperep.com` to Fly.io `CORS_ORIGINS`
+- **API Path**: Frontend `NEXT_PUBLIC_API_URL` now correctly includes `/api/v1` suffix
+- **422 Error**: Fixed `updateStructuredInstructions` payload — was wrapping in extra `{ instructions_structured: ... }` layer
+
+**Docs**: `docs/completions/frontend-api-fix.md`
+
+---
+
 ## [0.0.4] - 2025-12-02
 
 ### Added
