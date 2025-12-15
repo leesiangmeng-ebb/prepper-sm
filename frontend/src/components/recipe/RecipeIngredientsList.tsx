@@ -28,7 +28,6 @@ import { RecipeIngredientRow } from './RecipeIngredientRow';
 import { Skeleton } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { RecipeIngredient } from '@/types';
 
 interface RecipeIngredientsListProps {
   recipeId: number;

@@ -5,7 +5,7 @@ import { ChefHat } from 'lucide-react';
 import { useAppState } from '@/lib/store';
 import { useRecipe, useUpdateRecipe, useUpdateRecipeStatus } from '@/lib/hooks';
 import { useCosting } from '@/lib/hooks';
-import { Input, Select, Badge } from '@/components/ui';
+import { Input, Select } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { RecipeStatus } from '@/types';
