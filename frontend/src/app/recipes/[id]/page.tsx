@@ -2,11 +2,12 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Edit2, ImagePlus, Clock, Thermometer } from 'lucide-react';
+import { ArrowLeft, Edit2, ImagePlus, Clock, Thermometer, Star, CheckCircle, AlertCircle, XCircle, Wine } from 'lucide-react';
 import { useRecipe, useRecipeIngredients, useCosting } from '@/lib/hooks';
+import { useRecipeTastingNotes, useRecipeTastingSummary } from '@/lib/hooks/useTastings';
 import { Badge, Button, Card, CardContent, Skeleton } from '@/components/ui';
 import { formatCurrency, formatTimer } from '@/lib/utils';
-import type { RecipeStatus } from '@/types';
+import type { RecipeStatus, TastingDecision } from '@/types';
 
 interface RecipePageProps {
   params: Promise<{ id: string }>;
@@ -18,6 +19,37 @@ const STATUS_VARIANTS: Record<RecipeStatus, 'default' | 'success' | 'warning' | 
   archived: 'warning',
 };
 
+const DECISION_CONFIG: Record<TastingDecision, { label: string; icon: typeof CheckCircle; variant: 'success' | 'warning' | 'destructive' }> = {
+  approved: { label: 'Approved', icon: CheckCircle, variant: 'success' },
+  needs_work: { label: 'Needs Work', icon: AlertCircle, variant: 'warning' },
+  rejected: { label: 'Rejected', icon: XCircle, variant: 'destructive' },
+};
+
+function StarRating({ rating }: { rating: number | null }) {
+  if (!rating) return <span className="text-zinc-400">-</span>;
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`h-3.5 w-3.5 ${
+            star <= rating
+              ? 'fill-amber-400 text-amber-400'
+              : 'text-zinc-300 dark:text-zinc-600'
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function formatTastingDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
 export default function RecipePage({ params }: RecipePageProps) {
   const { id } = use(params);
   const recipeId = parseInt(id, 10);
@@ -25,8 +57,10 @@ export default function RecipePage({ params }: RecipePageProps) {
   const { data: recipe, isLoading: recipeLoading, error: recipeError } = useRecipe(recipeId);
   const { data: ingredients, isLoading: ingredientsLoading } = useRecipeIngredients(recipeId);
   const { data: costing, isLoading: costingLoading } = useCosting(recipeId);
+  const { data: tastingNotes, isLoading: tastingLoading } = useRecipeTastingNotes(recipeId);
+  const { data: tastingSummary } = useRecipeTastingSummary(recipeId);
 
-  const isLoading = recipeLoading || ingredientsLoading || costingLoading;
+  const isLoading = recipeLoading || ingredientsLoading || costingLoading || tastingLoading;
 
   if (recipeError) {
     return (
@@ -234,6 +268,98 @@ export default function RecipePage({ params }: RecipePageProps) {
                   <p className="text-zinc-400 dark:text-zinc-500">
                     No instructions added yet
                   </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Tasting History Card */}
+            <Card className="mt-6">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Wine className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                      Tasting History
+                    </h2>
+                  </div>
+                  {tastingSummary && tastingSummary.total_tastings > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-zinc-500">
+                        {tastingSummary.total_tastings} tasting{tastingSummary.total_tastings !== 1 ? 's' : ''}
+                      </span>
+                      {tastingSummary.average_overall_rating && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                          <span className="font-medium">{tastingSummary.average_overall_rating.toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {tastingNotes && tastingNotes.length > 0 ? (
+                  <div className="space-y-3">
+                    {tastingNotes.slice(0, 5).map((note) => {
+                      const config = note.decision ? DECISION_CONFIG[note.decision] : null;
+                      const Icon = config?.icon;
+                      return (
+                        <div
+                          key={note.id}
+                          className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Link
+                                href={`/tastings/${note.session_id}`}
+                                className="text-sm font-medium text-zinc-900 dark:text-zinc-100 hover:text-purple-600 dark:hover:text-purple-400"
+                              >
+                                {note.session_name}
+                              </Link>
+                              {config && (
+                                <Badge variant={config.variant} className="text-xs">
+                                  {Icon && <Icon className="h-3 w-3 mr-1" />}
+                                  {config.label}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
+                              {note.session_date && (
+                                <span>{formatTastingDate(note.session_date)}</span>
+                              )}
+                              {note.overall_rating && (
+                                <StarRating rating={note.overall_rating} />
+                              )}
+                            </div>
+                            {note.feedback && (
+                              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300 line-clamp-2">
+                                &ldquo;{note.feedback}&rdquo;
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {tastingNotes.length > 5 && (
+                      <Link
+                        href="/tastings"
+                        className="block text-center text-sm text-purple-600 dark:text-purple-400 hover:underline pt-2"
+                      >
+                        View all {tastingNotes.length} tastings
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Wine className="h-8 w-8 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
+                    <p className="text-zinc-400 dark:text-zinc-500">
+                      No tastings recorded yet
+                    </p>
+                    <Link href="/tastings/new" className="mt-2 inline-block">
+                      <Button variant="outline" size="sm">
+                        Create Tasting Session
+                      </Button>
+                    </Link>
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChefHat, FlaskConical, DollarSign, Package, BookOpen } from 'lucide-react';
+import { ChefHat, FlaskConical, DollarSign, Package, BookOpen, Wine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Canvas', icon: ChefHat },
   { href: '/ingredients', label: 'Ingredients', icon: Package },
   { href: '/recipes', label: 'Recipes', icon: BookOpen },
+  { href: '/tastings', label: 'Tastings', icon: Wine },
   { href: '/rnd', label: 'R&D', icon: FlaskConical },
   { href: '/finance', label: 'Finance', icon: DollarSign },
 ];

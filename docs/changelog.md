@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ## Version History
 
+- **0.0.10** (2025-12-18) - Tasting Notes: R&D Feedback Tracking with Sessions, Ratings, Decisions & Recipe History Integration
 - **0.0.9** (2025-12-17) - Bugfix: Enum-to-VARCHAR Mismatch Fix for Ingredients API + CORS Update for Vercel
 - **0.0.8** (2025-12-17) - Frontend Multi-Page Expansion: Ingredients Library, Recipes Gallery, Recipe Detail, R&D Workspace, Finance Placeholder
 - **0.0.7** (2025-12-17) - Recipe Extensions: Sub-Recipe BOM Hierarchy, Authorship Tracking, Outlet/Brand Attribution
@@ -15,6 +16,52 @@ All notable changes to this project will be documented in this file.
 - **0.0.3** (2024-11-27) - Database Migration: Alembic Initial Tables to Supabase + PostgreSQL JSON Compatibility Fix
 - **0.0.2** (2024-11-27) - Frontend Implementation: Next.js 15 Recipe Canvas with Drag-and-Drop, Autosave & TanStack Query
 - **0.0.1** (2024-11-27) - Backend Foundation: FastAPI + SQLModel with 17 API Endpoints, Domain Services & Unit Conversion
+
+---
+
+## [0.0.10] - 2025-12-18
+
+### Added
+
+#### Tasting Notes Feature (Plan 05)
+
+Complete R&D feedback tracking system for recipe tasting sessions.
+
+**New Models**:
+- `TastingSession` — Tasting event with name, date, location, attendees
+- `TastingNote` — Per-recipe feedback with 1-5 star ratings, decision, action items
+- `TastingDecision` — Enum: `approved`, `needs_work`, `rejected`
+- `RecipeTastingSummary` — Aggregated tasting data for a recipe
+
+**New Database Tables**:
+- `tasting_sessions` — with indexes on date and name
+- `tasting_notes` — with indexes on session_id and recipe_id, cascade delete
+
+**New API Endpoints** (13 total):
+- `/tasting-sessions` — CRUD for tasting sessions
+- `/tasting-sessions/{id}/stats` — Session statistics
+- `/tasting-sessions/{id}/notes` — CRUD for notes within a session
+- `/recipes/{id}/tasting-notes` — Recipe's tasting history
+- `/recipes/{id}/tasting-summary` — Recipe's aggregated summary
+
+**New Frontend Pages**:
+- `/tastings` — List of all tasting sessions with search
+- `/tastings/new` — Create new session form
+- `/tastings/[id]` — Session detail with notes, ratings, and editing
+
+**Recipe Detail Integration**:
+- Added "Tasting History" section showing recent tastings
+- Displays average rating, decision badges, feedback excerpts
+- Links to full tasting session
+
+**UI Enhancements**:
+- Added `destructive` variant to Badge component
+- Added "Tastings" to TopNav with Wine icon
+- Star rating component with 1-5 interactive stars
+
+**Migration**: `c3d4e5f6g7h8_add_tasting_tables.py`
+
+**Docs**: `docs/completions/plan-05-tasting-notes.md`
 
 ---
 

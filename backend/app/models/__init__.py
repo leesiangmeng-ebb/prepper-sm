@@ -46,6 +46,18 @@ from app.models.costing import (
     SubRecipeCostItem,
     CostingResult,
 )
+from app.models.tasting import (
+    TastingSession,
+    TastingSessionCreate,
+    TastingSessionUpdate,
+    TastingNote,
+    TastingNoteCreate,
+    TastingNoteUpdate,
+    TastingNoteRead,
+    TastingNoteWithRecipe,
+    TastingDecision,
+    RecipeTastingSummary,
+)
 
 __all__ = [
     # Ingredient
@@ -88,4 +100,15 @@ __all__ = [
     "CostBreakdownItem",
     "SubRecipeCostItem",
     "CostingResult",
+    # Tasting
+    "TastingSession",
+    "TastingSessionCreate",
+    "TastingSessionUpdate",
+    "TastingNote",
+    "TastingNoteCreate",
+    "TastingNoteUpdate",
+    "TastingNoteRead",
+    "TastingNoteWithRecipe",
+    "TastingDecision",
+    "RecipeTastingSummary",
 ]

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import create_db_and_tables
-from app.api import ingredients, recipes, recipe_ingredients, instructions, costing, sub_recipes, outlets
+from app.api import ingredients, recipes, recipe_ingredients, instructions, costing, sub_recipes, outlets, tastings
 
 settings = get_settings()
 
@@ -78,6 +78,16 @@ def create_app() -> FastAPI:
         outlets.recipe_outlets_router,
         prefix=f"{settings.api_v1_prefix}/recipes",
         tags=["recipe-outlets"],
+    )
+    app.include_router(
+        tastings.router,
+        prefix=f"{settings.api_v1_prefix}/tasting-sessions",
+        tags=["tastings"],
+    )
+    app.include_router(
+        tastings.recipe_tastings_router,
+        prefix=f"{settings.api_v1_prefix}/recipes",
+        tags=["recipe-tastings"],
     )
 
     @app.get("/health")

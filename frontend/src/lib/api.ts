@@ -11,6 +11,15 @@ import type {
   ReorderIngredientsRequest,
   ParseInstructionsRequest,
   InstructionsStructured,
+  TastingSession,
+  TastingNote,
+  TastingNoteWithRecipe,
+  RecipeTastingSummary,
+  TastingSessionStats,
+  CreateTastingSessionRequest,
+  UpdateTastingSessionRequest,
+  CreateTastingNoteRequest,
+  UpdateTastingNoteRequest,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -226,4 +235,93 @@ export async function recomputeRecipeCosting(
   return fetchApi<CostingResult>(`/recipes/${recipeId}/costing/recompute`, {
     method: 'POST',
   });
+}
+
+// ============ Tasting Sessions ============
+
+export async function getTastingSessions(): Promise<TastingSession[]> {
+  return fetchApi<TastingSession[]>('/tasting-sessions');
+}
+
+export async function getTastingSession(id: number): Promise<TastingSession> {
+  return fetchApi<TastingSession>(`/tasting-sessions/${id}`);
+}
+
+export async function getTastingSessionStats(id: number): Promise<TastingSessionStats> {
+  return fetchApi<TastingSessionStats>(`/tasting-sessions/${id}/stats`);
+}
+
+export async function createTastingSession(
+  data: CreateTastingSessionRequest
+): Promise<TastingSession> {
+  return fetchApi<TastingSession>('/tasting-sessions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateTastingSession(
+  id: number,
+  data: UpdateTastingSessionRequest
+): Promise<TastingSession> {
+  return fetchApi<TastingSession>(`/tasting-sessions/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteTastingSession(id: number): Promise<void> {
+  return fetchApi<void>(`/tasting-sessions/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// ============ Tasting Notes ============
+
+export async function getSessionNotes(sessionId: number): Promise<TastingNote[]> {
+  return fetchApi<TastingNote[]>(`/tasting-sessions/${sessionId}/notes`);
+}
+
+export async function addNoteToSession(
+  sessionId: number,
+  data: CreateTastingNoteRequest
+): Promise<TastingNote> {
+  return fetchApi<TastingNote>(`/tasting-sessions/${sessionId}/notes`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateTastingNote(
+  sessionId: number,
+  noteId: number,
+  data: UpdateTastingNoteRequest
+): Promise<TastingNote> {
+  return fetchApi<TastingNote>(`/tasting-sessions/${sessionId}/notes/${noteId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteTastingNote(
+  sessionId: number,
+  noteId: number
+): Promise<void> {
+  return fetchApi<void>(`/tasting-sessions/${sessionId}/notes/${noteId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ============ Recipe Tasting History ============
+
+export async function getRecipeTastingNotes(
+  recipeId: number
+): Promise<TastingNoteWithRecipe[]> {
+  return fetchApi<TastingNoteWithRecipe[]>(`/recipes/${recipeId}/tasting-notes`);
+}
+
+export async function getRecipeTastingSummary(
+  recipeId: number
+): Promise<RecipeTastingSummary> {
+  return fetchApi<RecipeTastingSummary>(`/recipes/${recipeId}/tasting-summary`);
 }
