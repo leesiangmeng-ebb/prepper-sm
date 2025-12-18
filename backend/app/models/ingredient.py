@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import Column, JSON
+from sqlalchemy import Column, JSON, String
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -69,11 +69,8 @@ class IngredientBase(SQLModel):
     base_unit: str = Field(description="e.g. g, kg, ml, l, pcs")
     cost_per_base_unit: float | None = Field(default=None)
 
-    # NEW: Food category for filtering and grouping
-    category: FoodCategory | None = Field(default=None)
-
-    # NEW: Source tracking ("fmh" | "manual")
-    source: IngredientSource = Field(default=IngredientSource.MANUAL)
+    # NOTE: category and source are defined on Ingredient table class with sa_column
+    # to force VARCHAR storage instead of native PostgreSQL ENUM
 
 
 class Ingredient(IngredientBase, table=True):
@@ -93,6 +90,14 @@ class Ingredient(IngredientBase, table=True):
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Food category - stored as VARCHAR to avoid native ENUM issues
+    category: str | None = Field(default=None, sa_column=Column(String(50), nullable=True))
+
+    # Source tracking - stored as VARCHAR to avoid native ENUM issues
+    source: str = Field(
+        default="manual", sa_column=Column(String(20), nullable=False, default="manual")
+    )
 
     # NEW: Supplier pricing data (JSONB array of SupplierEntry)
     # Structure: [{"supplier_id": "...", "supplier_name": "...", ...}, ...]
@@ -118,8 +123,8 @@ class IngredientCreate(SQLModel):
     name: str
     base_unit: str
     cost_per_base_unit: float | None = None
-    category: FoodCategory | None = None
-    source: IngredientSource = IngredientSource.MANUAL
+    category: str | None = None  # Use FoodCategory enum values: proteins, vegetables, etc.
+    source: str = "manual"  # "fmh" or "manual"
     master_ingredient_id: int | None = None
     suppliers: list[dict] | None = None
 
@@ -130,8 +135,8 @@ class IngredientUpdate(SQLModel):
     name: str | None = None
     base_unit: str | None = None
     cost_per_base_unit: float | None = None
-    category: FoodCategory | None = None
-    source: IngredientSource | None = None
+    category: str | None = None  # Use FoodCategory enum values
+    source: str | None = None  # "fmh" or "manual"
     master_ingredient_id: int | None = None
     suppliers: list[dict] | None = None
 

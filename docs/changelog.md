@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ## Version History
 
+- **0.0.9** (2025-12-17) - Bugfix: Enum-to-VARCHAR Mismatch Fix for Ingredients API + CORS Update for Vercel
 - **0.0.8** (2025-12-17) - Frontend Multi-Page Expansion: Ingredients Library, Recipes Gallery, Recipe Detail, R&D Workspace, Finance Placeholder
 - **0.0.7** (2025-12-17) - Recipe Extensions: Sub-Recipe BOM Hierarchy, Authorship Tracking, Outlet/Brand Attribution
 - **0.0.6** (2025-12-17) - Ingredient Data Model Enhancements: Multi-Supplier Pricing, Master Ingredient Linking, Food Categories & Source Tracking
@@ -14,6 +15,43 @@ All notable changes to this project will be documented in this file.
 - **0.0.3** (2024-11-27) - Database Migration: Alembic Initial Tables to Supabase + PostgreSQL JSON Compatibility Fix
 - **0.0.2** (2024-11-27) - Frontend Implementation: Next.js 15 Recipe Canvas with Drag-and-Drop, Autosave & TanStack Query
 - **0.0.1** (2024-11-27) - Backend Foundation: FastAPI + SQLModel with 17 API Endpoints, Domain Services & Unit Conversion
+
+---
+
+## [0.0.9] - 2025-12-17
+
+### Fixed
+
+#### Enum-to-VARCHAR Mismatch
+
+The `/api/v1/ingredients` endpoint was returning 500 errors due to a mismatch between Python Enum types and database VARCHAR storage.
+
+**Root Cause**: The Alembic migration created `category` and `source` as VARCHAR columns, but the SQLModel used Python Enums without explicit `sa_column`. SQLModel interpreted these as native PostgreSQL ENUMs using member **names** (FMH, MANUAL) instead of **values** (fmh, manual), causing `LookupError` on read.
+
+**Fix**: Changed `Ingredient` model to use explicit `sa_column=Column(String(...))` for enum-like fields, ensuring VARCHAR storage.
+
+```python
+# Before (broken)
+source: IngredientSource = Field(default=IngredientSource.MANUAL)
+
+# After (fixed)
+source: str = Field(
+    default="manual",
+    sa_column=Column(String(20), nullable=False, default="manual")
+)
+```
+
+**Files Modified**: `backend/app/models/ingredient.py`
+
+#### CORS Origins Update
+
+Added Vercel deployment domain to allowed CORS origins:
+
+```
+https://prepper-one.vercel.app
+```
+
+**Docs**: `docs/completions/enum-varchar-fix.md`
 
 ---
 
