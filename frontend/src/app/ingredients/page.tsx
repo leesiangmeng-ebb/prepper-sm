@@ -7,6 +7,7 @@ import { IngredientCard } from '@/components/ingredients';
 import { PageHeader, SearchInput, Select, GroupSection, Button, Skeleton } from '@/components/ui';
 import { toast } from 'sonner';
 import type { Ingredient } from '@/types';
+import { NewIngredientForm } from '@/components/layout/RightPanel';
 
 type GroupByOption = 'none' | 'unit' | 'status';
 
@@ -47,6 +48,7 @@ export default function IngredientsPage() {
   const deactivateIngredient = useDeactivateIngredient();
 
   const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false)
   const [groupBy, setGroupBy] = useState<GroupByOption>('none');
   const [showArchived, setShowArchived] = useState(false);
 
@@ -95,12 +97,19 @@ export default function IngredientsPage() {
           title="Ingredients"
           description="Browse and manage your ingredient library"
         >
-          <Button disabled title="Coming soon">
+          <Button onClick={() => setShowForm(true)} disabled={showForm}>
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">Add Ingredient</span>
           </Button>
         </PageHeader>
+        {showForm && (
+          <div className="w-full d-flex justify-items-end">
+            <div className="w-fit mb-3">
+              <NewIngredientForm onClose={() => setShowForm(false)} />
+            </div>
+          </div>
 
+        )}
         {/* Toolbar */}
         <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center">
           <div className="flex-1 max-w-md">

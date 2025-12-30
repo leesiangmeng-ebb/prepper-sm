@@ -65,7 +65,7 @@ function IngredientListSkeleton() {
   );
 }
 
-function NewIngredientForm({ onClose }: { onClose: () => void }) {
+export function NewIngredientForm({ onClose }: { onClose: () => void }) {
   const createIngredient = useCreateIngredient();
   const [name, setName] = useState('');
   const [baseUnit, setBaseUnit] = useState('g');
@@ -110,6 +110,7 @@ function NewIngredientForm({ onClose }: { onClose: () => void }) {
         />
         <Input
           type="number"
+          required={true}
           value={cost}
           onChange={(e) => setCost(e.target.value)}
           placeholder="Cost"
