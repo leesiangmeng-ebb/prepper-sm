@@ -17,6 +17,7 @@ Last updated: 2024-11-27
 - `Ingredient`: id, name, base_unit, cost_per_base_unit (nullable), is_active, timestamps. Create/Update schemas.
 - `Recipe`: id, name, yield_quantity/unit, is_prep_recipe, instructions_raw, instructions_structured (JSON), cost_price (cached), selling_price_est, status (draft/active/archived), timestamps. Create/Update/Status schemas.
 - `RecipeIngredient`: links recipe ↔ ingredient with quantity, unit, sort_order, timestamps. Create/Update/Reorder schemas.
+- `Supplier`: id, name, sku (nullable), timestamps. Create/Update schemas.
 - Costing response models: `CostBreakdownItem`, `CostingResult` (per-portion, batch, missing_costs list).
 
 ## Services (app/domain)
@@ -24,6 +25,7 @@ Last updated: 2024-11-27
 - `RecipeService`: recipe lifecycle (create/list/get/update metadata, set status, soft delete) and ingredient management (list ordered, add with duplicate guard + incremental sort_order, update quantity/unit, delete, reorder by provided id list).
 - `InstructionsService`: store raw text; placeholder LLM parser (line-based) to structured; update structured; combined parse-and-store flow.
 - `CostingService`: calculate breakdown (joins ingredients, converts qty → ingredient base unit via `convert_to_base_unit`, multiplies by cost_per_base_unit, aggregates). Returns missing_costs if any cost is null; cost_per_portion = total/yield. `persist_cost_snapshot` caches cost_per_portion to recipe.cost_price.
+- `SupplierService`: CRUD operations for suppliers (create, list, get, update, delete) with updated_at stamping on updates.
 
 ## API Routes (app/api, prefixed with /api/v1)
 - Ingredients (`ingredients.py`): POST create, GET list (active_only query), GET by id, PATCH update, PATCH /deactivate.
@@ -31,6 +33,7 @@ Last updated: 2024-11-27
 - Recipe Ingredients (`recipe_ingredients.py`): GET list for recipe, POST add (409 on duplicate), PATCH update qty/unit, DELETE remove (204), POST /reorder with ordered_ids.
 - Instructions (`instructions.py`): POST /instructions/raw (store text), POST /instructions/parse (parse existing raw via placeholder LLM and save structured), PATCH /instructions/structured (manual update).
 - Costing (`costing.py`): GET /costing (calculate on the fly), POST /costing/recompute (calculate + persist cost_price).
+- Suppliers (`suppliers.py`): POST create, GET list, GET by id, PATCH update, DELETE remove (204).
 - Shared dependency `get_session` in `app/api/deps.py` yields SQLModel Session.
 
 ## Utilities

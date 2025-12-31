@@ -3,3 +3,4 @@ export * from './useIngredients';
 export * from './useRecipeIngredients';
 export * from './useCosting';
 export * from './useInstructions';
+export * from './useSuppliers';

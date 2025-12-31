@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Edit2, Archive, ImagePlus } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
@@ -23,7 +24,11 @@ export function IngredientCard({ ingredient, onEdit, onArchive }: IngredientCard
     >
       <CardHeader>
         <div className="flex-1 min-w-0">
-          <CardTitle className="truncate">{ingredient.name}</CardTitle>
+          <Link href={`/ingredients/${ingredient.id}`}>
+            <CardTitle className="truncate hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
+              {ingredient.name}
+            </CardTitle>
+          </Link>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
             {formatCurrency(ingredient.cost_per_base_unit)}/{ingredient.base_unit}
           </p>

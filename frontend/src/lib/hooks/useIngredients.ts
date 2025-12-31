@@ -11,6 +11,14 @@ export function useIngredients() {
   });
 }
 
+export function useIngredient(id: number | null) {
+  return useQuery({
+    queryKey: ['ingredient', id],
+    queryFn: () => api.getIngredient(id!),
+    enabled: id !== null,
+  });
+}
+
 export function useCreateIngredient() {
   const queryClient = useQueryClient();
 

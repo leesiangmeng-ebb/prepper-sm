@@ -20,6 +20,8 @@ import type {
   UpdateTastingSessionRequest,
   CreateTastingNoteRequest,
   UpdateTastingNoteRequest,
+  Supplier,
+  CreateSupplierRequest,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -324,4 +326,23 @@ export async function getRecipeTastingSummary(
   recipeId: number
 ): Promise<RecipeTastingSummary> {
   return fetchApi<RecipeTastingSummary>(`/recipes/${recipeId}/tasting-summary`);
+}
+
+// ============ Suppliers ============
+
+export async function getSuppliers(): Promise<Supplier[]> {
+  return fetchApi<Supplier[]>('/suppliers');
+}
+
+export async function getSupplier(id: number): Promise<Supplier> {
+  return fetchApi<Supplier>(`/suppliers/${id}`);
+}
+
+export async function createSupplier(
+  data: CreateSupplierRequest
+): Promise<Supplier> {
+  return fetchApi<Supplier>('/suppliers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }

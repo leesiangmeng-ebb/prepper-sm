@@ -205,3 +205,23 @@ export interface UpdateTastingNoteRequest {
   decision?: TastingDecision | null;
   taster_name?: string | null;
 }
+
+// ============ Supplier Types ============
+
+export interface Supplier {
+  id: number;
+  name: string;
+  sku: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSupplierRequest {
+  name: string;
+  sku?: string | null;
+}
+
+export interface UpdateSupplierRequest {
+  name?: string;
+  sku?: string | null;
+}
