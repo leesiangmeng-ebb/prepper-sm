@@ -50,13 +50,22 @@ export function AppShell() {
         return;
       }
 
+      // Check for preferred supplier, otherwise use ingredient defaults
+      const preferredSupplier = ingredient.suppliers?.find((s) => s.is_preferred);
+      const base_unit = preferredSupplier?.pack_unit ?? ingredient.base_unit;
+      const unit_price = preferredSupplier?.cost_per_unit ?? ingredient.cost_per_base_unit ?? 0;
+      const supplier_id = preferredSupplier ? parseInt(preferredSupplier.supplier_id, 10) : null;
+
       addIngredient.mutate(
         {
           recipeId: selectedRecipeId,
           data: {
             ingredient_id: ingredient.id,
             quantity: 1,
-            unit: ingredient.base_unit,
+            unit: base_unit,
+            base_unit,
+            unit_price,
+            supplier_id,
           },
         },
         {

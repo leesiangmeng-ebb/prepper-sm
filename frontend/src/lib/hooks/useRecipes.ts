@@ -39,6 +39,7 @@ export function useUpdateRecipe() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['recipe', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['costing', variables.id] });
     },
   });
 }

@@ -123,8 +123,8 @@ class CostingService:
                 # Calculate line cost
                 # TO DO: should use the ingredient unit
                 line_cost = None
-                if ri.cost_per_base_unit is not None and quantity_in_base is not None:
-                    line_cost = quantity_in_base * ri.cost_per_base_unit
+                if ri.unit_price is not None and quantity_in_base is not None:
+                    line_cost = quantity_in_base * ri.unit_price
                     ingredient_cost += line_cost
                 else:
                     missing_costs.append(ingredient.name)
@@ -137,7 +137,7 @@ class CostingService:
                         unit=ri.unit,
                         quantity_in_base_unit=quantity_in_base or ri.quantity,
                         base_unit=ri.base_unit,
-                        cost_per_base_unit=ri.cost_per_base_unit,
+                        cost_per_base_unit=ri.unit_price,
                         line_cost=line_cost,
                     )
                 )

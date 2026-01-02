@@ -115,12 +115,17 @@ class RecipeService:
         ).first()
         next_order = (max_order_result or 0) + 1
 
+        # no priority -> just take the ingredient
+
         recipe_ingredient = RecipeIngredient(
             recipe_id=recipe_id,
             ingredient_id=data.ingredient_id,
             quantity=data.quantity,
             unit=data.unit,
             sort_order=next_order,
+            base_unit=data.base_unit,
+            unit_price=data.unit_price,
+            supplier_id=data.supplier_id
         )
         self.session.add(recipe_ingredient)
         self.session.commit()

@@ -10,6 +10,7 @@ export interface Ingredient {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  suppliers?: IngredientSupplierEntry[];
 }
 
 export interface Recipe {
@@ -37,6 +38,9 @@ export interface RecipeIngredient {
   unit: string;
   sort_order: number;
   created_at: string;
+  base_unit: string | null;
+  unit_price: number | null;
+  supplier_id: number | null;
   ingredient?: Ingredient;
 }
 
@@ -99,11 +103,17 @@ export interface AddRecipeIngredientRequest {
   ingredient_id: number;
   quantity: number;
   unit: string;
+  base_unit: string;
+  unit_price: number;
+  supplier_id: number | null;
 }
 
 export interface UpdateRecipeIngredientRequest {
   quantity?: number;
   unit?: string;
+  base_unit?: string;
+  unit_price?: number;
+  supplier_id?: number | null;
 }
 
 export interface ReorderIngredientsRequest {

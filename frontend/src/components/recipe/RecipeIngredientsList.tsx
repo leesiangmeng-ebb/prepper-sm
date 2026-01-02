@@ -114,6 +114,30 @@ export function RecipeIngredientsList({ recipeId }: RecipeIngredientsListProps) 
     [recipeId, updateIngredient]
   );
 
+  const handleUnitPriceChange = useCallback(
+    (ingredientId: number, unitPrice: number, baseUnit: string) => {
+      updateIngredient.mutate(
+        { recipeId, ingredientId, data: { unit_price: unitPrice, base_unit: baseUnit } },
+        { onError: () => toast.error('Failed to update unit price') }
+      );
+    },
+    [recipeId, updateIngredient]
+  );
+
+  const handleSupplierChange = useCallback(
+    (ingredientId: number, supplierId: number | null, unitPrice: number, baseUnit: string) => {
+      updateIngredient.mutate(
+        {
+          recipeId,
+          ingredientId,
+          data: { supplier_id: supplierId, unit_price: unitPrice, base_unit: baseUnit },
+        },
+        { onError: () => toast.error('Failed to update supplier') }
+      );
+    },
+    [recipeId, updateIngredient]
+  );
+
   const handleRemove = useCallback(
     (ingredientId: number) => {
       removeIngredient.mutate(
@@ -199,6 +223,12 @@ export function RecipeIngredientsList({ recipeId }: RecipeIngredientsListProps) 
                 ingredient={ingredient}
                 onQuantityChange={(qty) => handleQuantityChange(ingredient.id, qty)}
                 onUnitChange={(unit) => handleUnitChange(ingredient.id, unit)}
+                onUnitPriceChange={(unitPrice, baseUnit) =>
+                  handleUnitPriceChange(ingredient.id, unitPrice, baseUnit)
+                }
+                onSupplierChange={(supplierId, unitPrice, baseUnit) =>
+                  handleSupplierChange(ingredient.id, supplierId, unitPrice, baseUnit)
+                }
                 onRemove={() => handleRemove(ingredient.id)}
               />
             ))}

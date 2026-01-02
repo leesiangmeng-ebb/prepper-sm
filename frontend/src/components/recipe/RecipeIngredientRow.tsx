@@ -27,6 +27,8 @@ interface RecipeIngredientRowProps {
   ingredient: RecipeIngredient;
   onQuantityChange: (quantity: number) => void;
   onUnitChange: (unit: string) => void;
+  onUnitPriceChange: (unitPrice: number, baseUnit: string) => void;
+  onSupplierChange: (supplierId: number | null, unitPrice: number, baseUnit: string) => void;
   onRemove: () => void;
 }
 
@@ -34,6 +36,8 @@ export function RecipeIngredientRow({
   ingredient,
   onQuantityChange,
   onUnitChange,
+  onUnitPriceChange,
+  onSupplierChange,
   onRemove,
 }: RecipeIngredientRowProps) {
   const {
@@ -47,8 +51,13 @@ export function RecipeIngredientRow({
 
   const [localQuantity, setLocalQuantity] = useState(String(ingredient.quantity));
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<string>('');
-  const [unitPrice, setUnitPrice] = useState<string>(String(ingredient.ingredient?.cost_per_base_unit));
+  const [unitPriceDebounceTimer, setUnitPriceDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<string>(
+    ingredient.supplier_id?.toString() ?? ''
+  );
+  const [unitPrice, setUnitPrice] = useState<string>(
+    ingredient.unit_price?.toString() ?? ''
+  );
 
   // Fetch suppliers for this ingredient
   const { data: suppliers = [] } = useQuery({
@@ -64,6 +73,14 @@ export function RecipeIngredientRow({
   useEffect(() => {
     setLocalQuantity(String(ingredient.quantity));
   }, [ingredient.quantity]);
+
+  useEffect(() => {
+    setSelectedSupplier(ingredient.supplier_id?.toString() ?? '');
+  }, [ingredient.supplier_id]);
+
+  useEffect(() => {
+    setUnitPrice(ingredient.unit_price?.toString() ?? '');
+  }, [ingredient.unit_price]);
 
   const handleQuantityChange = useCallback(
     (value: string) => {
@@ -85,16 +102,59 @@ export function RecipeIngredientRow({
     [debounceTimer, onQuantityChange]
   );
 
+  const handleUnitPriceChange = useCallback(
+    (value: string) => {
+      setUnitPrice(value);
+
+      if (unitPriceDebounceTimer) {
+        clearTimeout(unitPriceDebounceTimer);
+      }
+
+      const timer = setTimeout(() => {
+        const num = parseFloat(value);
+        if (!isNaN(num) && num >= 0) {
+          onUnitPriceChange(num, ingredient.base_unit ?? ingredient.unit);
+        }
+      }, 500);
+
+      setUnitPriceDebounceTimer(timer);
+    },
+    [unitPriceDebounceTimer, onUnitPriceChange, ingredient.base_unit, ingredient.unit]
+  );
+
+  const handleSupplierChange = useCallback(
+    (supplierId: string) => {
+      setSelectedSupplier(supplierId);
+
+      if (!supplierId) {
+        // No supplier selected - use ingredient defaults
+        const defaultUnitPrice = ingredient.ingredient?.cost_per_base_unit ?? 0;
+        const defaultBaseUnit = ingredient.ingredient?.base_unit ?? ingredient.unit;
+        onSupplierChange(null, defaultUnitPrice, defaultBaseUnit);
+      } else {
+        // Find the selected supplier and use its values
+        const supplier = suppliers.find((s) => s.supplier_id === supplierId);
+        if (supplier) {
+          onSupplierChange(
+            parseInt(supplierId, 10),
+            supplier.cost_per_unit,
+            supplier.pack_unit
+          );
+        }
+      }
+    },
+    [suppliers, onSupplierChange, ingredient.ingredient, ingredient.unit]
+  );
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  // Calculate line cost
+  // Calculate line cost using ingredient.unit_price
   const lineCost =
-    ingredient.ingredient?.cost_per_base_unit !== null &&
-    ingredient.ingredient?.cost_per_base_unit !== undefined
-      ? ingredient.quantity * ingredient.ingredient.cost_per_base_unit
+    ingredient.unit_price !== null && ingredient.unit_price !== undefined
+      ? ingredient.quantity * ingredient.unit_price
       : null;
 
   return (
@@ -122,7 +182,7 @@ export function RecipeIngredientRow({
 
       <Select
         value={selectedSupplier}
-        onChange={(e) => setSelectedSupplier(e.target.value)}
+        onChange={(e) => handleSupplierChange(e.target.value)}
         options={[{ value: '', label: 'No supplier' }, ...supplierOptions]}
         className="w-32"
       />
@@ -147,12 +207,12 @@ export function RecipeIngredientRow({
       <Input
         type="number"
         value={unitPrice}
-        onChange={(e) => setUnitPrice(e.target.value)}
+        onChange={(e) => handleUnitPriceChange(e.target.value)}
         placeholder="Unit $"
         className="w-20"
         min={0}
         step={0.01}
-      />/{ingredient.unit}
+      />/{ingredient.base_unit ?? ingredient.unit}
 
       <div className="w-20 text-right text-sm text-zinc-500">
         {lineCost !== null ? formatCurrency(lineCost) : '—'}

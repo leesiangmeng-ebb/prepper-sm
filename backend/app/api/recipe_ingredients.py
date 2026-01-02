@@ -50,7 +50,6 @@ def add_ingredient_to_recipe(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Recipe not found",
         )
-
     result = service.add_ingredient_to_recipe(recipe_id, data)
     if not result:
         raise HTTPException(

@@ -424,7 +424,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ingredient_id\": 1,\n  \"quantity\": 200,\n  \"unit\": \"g\"\n}"
+              "raw": "{\n  \"ingredient_id\": 1,\n  \"quantity\": 200,\n  \"unit\": \"g\",\n  \"base_unit\": \"kg\",\n  \"unit_price\": 2.50,\n  \"supplier_id\": 1\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/recipes/{{recipeId}}/ingredients",
@@ -446,14 +446,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"quantity\": 250,\n  \"unit\": \"g\"\n}"
+              "raw": "{\n  \"quantity\": 250,\n  \"unit\": \"g\",\n  \"base_unit\": \"kg\",\n  \"unit_price\": 3.00,\n  \"supplier_id\": 2\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/recipes/{{recipeId}}/ingredients/{{recipeIngredientId}}",
               "host": ["{{baseUrl}}"],
               "path": ["recipes", "{{recipeId}}", "ingredients", "{{recipeIngredientId}}"]
             },
-            "description": "Update a recipe ingredient's quantity or unit"
+            "description": "Update a recipe ingredient's quantity, unit, base_unit, unit_price, or supplier_id"
           }
         },
         {

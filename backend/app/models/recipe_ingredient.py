@@ -42,8 +42,9 @@ class RecipeIngredient(RecipeIngredientBase, table=True):
 
 class RecipeIngredientCreate(RecipeIngredientBase):
     """Schema for adding an ingredient to a recipe."""
-
-    pass
+    base_unit: str | None = None
+    unit_price: float | None = None
+    supplier_id: int | None = None
 
 
 class RecipeIngredientUpdate(SQLModel):
@@ -51,6 +52,9 @@ class RecipeIngredientUpdate(SQLModel):
 
     quantity: float | None = None
     unit: str | None = None
+    base_unit: str | None = None
+    unit_price: float | None = None
+    supplier_id: int | None = None
 
 
 class RecipeIngredientReorder(SQLModel):
@@ -78,4 +82,7 @@ class RecipeIngredientRead(SQLModel):
     unit: str
     sort_order: int
     created_at: datetime
+    base_unit: str | None = None
+    unit_price: float | None = None
+    supplier_id: int | None = None
     ingredient: IngredientNested | None = None
