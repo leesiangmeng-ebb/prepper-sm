@@ -249,6 +249,19 @@
           }
         },
         {
+          "name": "Get Suppliers for Ingredient",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ingredients/{{ingredientId}}/suppliers",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingredients", "{{ingredientId}}", "suppliers"]
+            },
+            "description": "Get all suppliers for an ingredient"
+          }
+        },
+        {
           "name": "Get Preferred Supplier",
           "request": {
             "method": "GET",
