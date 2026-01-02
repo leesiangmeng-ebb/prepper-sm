@@ -222,3 +222,44 @@ export interface CreateSupplierRequest {
 export interface UpdateSupplierRequest {
   name?: string;
 }
+
+// ============ Ingredient Supplier Entry Types ============
+
+export interface IngredientSupplierEntry {
+  supplier_id: string;
+  supplier_name: string;
+  sku: string | null;
+  pack_size: number;
+  pack_unit: string;
+  price_per_pack: number;
+  cost_per_unit: number;
+  currency: string;
+  is_preferred: boolean;
+  source: string;
+  last_updated: string | null;
+  last_synced: string | null;
+}
+
+export interface AddIngredientSupplierRequest {
+  supplier_id: string;
+  supplier_name: string;
+  sku?: string | null;
+  pack_size: number;
+  pack_unit: string;
+  price_per_pack: number;
+  cost_per_unit: number;
+  currency?: string;
+  is_preferred?: boolean;
+  source?: string;
+}
+
+export interface UpdateIngredientSupplierRequest {
+  supplier_name?: string;
+  sku?: string | null;
+  pack_size?: number;
+  pack_unit?: string;
+  price_per_pack?: number;
+  cost_per_unit?: number;
+  currency?: string;
+  is_preferred?: boolean;
+}

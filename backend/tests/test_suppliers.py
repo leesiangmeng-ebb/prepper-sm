@@ -7,12 +7,11 @@ def test_create_supplier(client: TestClient):
     """Test creating a new supplier."""
     response = client.post(
         "/api/v1/suppliers",
-        json={"name": "ACME Foods", "sku": "ACME-001"},
+        json={"name": "ACME Foods"},
     )
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "ACME Foods"
-    assert data["sku"] == "ACME-001"
     assert "id" in data
 
 
@@ -21,11 +20,11 @@ def test_list_suppliers(client: TestClient):
     # Create two suppliers
     client.post(
         "/api/v1/suppliers",
-        json={"name": "Fresh Farms", "sku": "FF-001"},
+        json={"name": "Fresh Farms"},
     )
     client.post(
         "/api/v1/suppliers",
-        json={"name": "Local Produce Co", "sku": "LPC-001"},
+        json={"name": "Local Produce Co"},
     )
 
     response = client.get("/api/v1/suppliers")

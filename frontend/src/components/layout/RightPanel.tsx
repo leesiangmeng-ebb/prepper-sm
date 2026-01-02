@@ -110,7 +110,6 @@ export function NewIngredientForm({ onClose }: { onClose: () => void }) {
         />
         <Input
           type="number"
-          required={true}
           value={cost}
           onChange={(e) => setCost(e.target.value)}
           placeholder="Cost"

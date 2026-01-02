@@ -2,7 +2,11 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/lib/api';
-import type { CreateIngredientRequest } from '@/types';
+import type {
+  CreateIngredientRequest,
+  AddIngredientSupplierRequest,
+  UpdateIngredientSupplierRequest,
+} from '@/types';
 
 export function useIngredients() {
   return useQuery({
@@ -54,6 +58,72 @@ export function useDeactivateIngredient() {
     mutationFn: (id: number) => api.deactivateIngredient(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    },
+  });
+}
+
+// ============ Ingredient Suppliers ============
+
+export function useIngredientSuppliers(ingredientId: number | null) {
+  return useQuery({
+    queryKey: ['ingredient-suppliers', ingredientId],
+    queryFn: () => api.getIngredientSuppliers(ingredientId!),
+    enabled: ingredientId !== null,
+  });
+}
+
+export function useAddIngredientSupplier() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      ingredientId,
+      data,
+    }: {
+      ingredientId: number;
+      data: AddIngredientSupplierRequest;
+    }) => api.addIngredientSupplier(ingredientId, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-suppliers', variables.ingredientId] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', variables.ingredientId] });
+    },
+  });
+}
+
+export function useUpdateIngredientSupplier() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      ingredientId,
+      supplierId,
+      data,
+    }: {
+      ingredientId: number;
+      supplierId: string;
+      data: UpdateIngredientSupplierRequest;
+    }) => api.updateIngredientSupplier(ingredientId, supplierId, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-suppliers', variables.ingredientId] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', variables.ingredientId] });
+    },
+  });
+}
+
+export function useRemoveIngredientSupplier() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      ingredientId,
+      supplierId,
+    }: {
+      ingredientId: number;
+      supplierId: string;
+    }) => api.removeIngredientSupplier(ingredientId, supplierId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-suppliers', variables.ingredientId] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', variables.ingredientId] });
     },
   });
 }

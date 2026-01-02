@@ -22,6 +22,9 @@ import type {
   UpdateTastingNoteRequest,
   Supplier,
   CreateSupplierRequest,
+  IngredientSupplierEntry,
+  AddIngredientSupplierRequest,
+  UpdateIngredientSupplierRequest,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -344,5 +347,43 @@ export async function createSupplier(
   return fetchApi<Supplier>('/suppliers', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+// ============ Ingredient Suppliers ============
+
+export async function getIngredientSuppliers(
+  ingredientId: number
+): Promise<IngredientSupplierEntry[]> {
+  return fetchApi<IngredientSupplierEntry[]>(`/ingredients/${ingredientId}/suppliers`);
+}
+
+export async function addIngredientSupplier(
+  ingredientId: number,
+  data: AddIngredientSupplierRequest
+): Promise<Ingredient> {
+  return fetchApi<Ingredient>(`/ingredients/${ingredientId}/suppliers`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateIngredientSupplier(
+  ingredientId: number,
+  supplierId: string,
+  data: UpdateIngredientSupplierRequest
+): Promise<Ingredient> {
+  return fetchApi<Ingredient>(`/ingredients/${ingredientId}/suppliers/${supplierId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function removeIngredientSupplier(
+  ingredientId: number,
+  supplierId: string
+): Promise<Ingredient> {
+  return fetchApi<Ingredient>(`/ingredients/${ingredientId}/suppliers/${supplierId}`, {
+    method: 'DELETE',
   });
 }

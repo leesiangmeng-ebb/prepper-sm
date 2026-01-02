@@ -156,6 +156,7 @@ class SupplierEntryCreate(SQLModel):
     pack_size: float
     pack_unit: str
     price_per_pack: float
+    cost_per_unit: float
     currency: str = "SGD"
     is_preferred: bool = False
     source: str = "manual"
@@ -169,5 +170,6 @@ class SupplierEntryUpdate(SQLModel):
     pack_size: float | None = None
     pack_unit: str | None = None
     price_per_pack: float | None = None
+    cost_per_unit: float | None = None
     currency: str | None = None
     is_preferred: bool | None = None

@@ -1,11 +1,19 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Edit2, ImagePlus, Plus, Trash2, Truck } from 'lucide-react';
-import { useIngredient, useSuppliers } from '@/lib/hooks';
+import {
+  useIngredient,
+  useSuppliers,
+  useIngredientSuppliers,
+  useAddIngredientSupplier,
+  useRemoveIngredientSupplier,
+  useUpdateIngredientSupplier,
+} from '@/lib/hooks';
 import { Badge, Button, Card, CardContent, Input, Select, Skeleton } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
+import type { UpdateIngredientSupplierRequest } from '@/types';
 
 // Unit options (same as Add Ingredient form)
 const UNIT_OPTIONS = [
@@ -16,20 +24,71 @@ const UNIT_OPTIONS = [
   { value: 'pcs', label: 'pcs (pieces)' },
 ];
 
-interface IngredientSupplier {
-  id: number;
-  supplier_id: number;
-  supplier_name: string;
-  sku: string;
-  unit_cost: number;
-  base_unit: string;
+// Inline editable cell component
+interface EditableCellProps {
+  value: string;
+  onSave: (value: string) => void;
+  type?: 'text' | 'number';
+  className?: string;
+  displayValue?: string;
 }
 
-// Hardcoded initial supplier data for ingredients
-const INITIAL_SUPPLIERS: IngredientSupplier[] = [
-  { id: 1, supplier_id: 1, supplier_name: 'Fresh Farms Co.', sku: 'FF-TOM-001', unit_cost: 2.50, base_unit: 'kg' },
-  { id: 2, supplier_id: 2, supplier_name: 'Metro Wholesale', sku: 'MW-TOM-234', unit_cost: 2.25, base_unit: 'kg' },
-];
+function EditableCell({ value, onSave, type = 'text', className = '', displayValue }: EditableCellProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    setEditValue(value);
+  }, [value]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    if (editValue !== value) {
+      onSave(editValue);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleBlur();
+    } else if (e.key === 'Escape') {
+      setEditValue(value);
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <input
+        ref={inputRef}
+        type={type}
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        step={type === 'number' ? '0.01' : undefined}
+        className={`w-full px-1 py-0.5 text-sm border border-purple-400 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white dark:bg-zinc-800 ${className}`}
+      />
+    );
+  }
+
+  return (
+    <span
+      onClick={() => setIsEditing(true)}
+      className={`cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 px-1 py-0.5 rounded ${className}`}
+    >
+      {displayValue ?? value ?? '-'}
+    </span>
+  );
+}
 
 interface IngredientPageProps {
   params: Promise<{ id: string }>;
@@ -41,18 +100,35 @@ export default function IngredientPage({ params }: IngredientPageProps) {
 
   const { data: ingredient, isLoading, error } = useIngredient(ingredientId);
   const { data: availableSuppliers } = useSuppliers();
+  const { data: suppliers = [] } = useIngredientSuppliers(ingredientId);
 
-  // Supplier state management
-  const [suppliers, setSuppliers] = useState<IngredientSupplier[]>(INITIAL_SUPPLIERS);
+  const addSupplierMutation = useAddIngredientSupplier();
+  const removeSupplierMutation = useRemoveIngredientSupplier();
+  const updateSupplierMutation = useUpdateIngredientSupplier();
+
+  const handleUpdateSupplier = (supplierId: string, data: UpdateIngredientSupplierRequest) => {
+    updateSupplierMutation.mutate({
+      ingredientId,
+      supplierId,
+      data,
+    });
+  };
+
   const [formData, setFormData] = useState({
     supplier_id: '',
     sku: '',
     unit_cost: '',
-    base_unit: '',
+    pack_unit: '',
+    pack_size: '',
+    price_per_pack: '',
+    is_preferred: false,
   });
 
-  const handleDeleteSupplier = (supplierId: number) => {
-    setSuppliers((prev) => prev.filter((s) => s.id !== supplierId));
+  const handleDeleteSupplier = (supplierId: string) => {
+    removeSupplierMutation.mutate({
+      ingredientId,
+      supplierId,
+    });
   };
 
   const handleAddSupplier = (e: React.FormEvent) => {
@@ -62,21 +138,40 @@ export default function IngredientPage({ params }: IngredientPageProps) {
       (s) => s.id === parseInt(formData.supplier_id, 10)
     );
 
-    if (!selectedSupplier || !formData.sku || !formData.unit_cost || !formData.base_unit) {
+    if (!selectedSupplier || !formData.unit_cost || !formData.pack_unit || !formData.pack_size || !formData.price_per_pack) {
       return;
     }
 
-    const newSupplier: IngredientSupplier = {
-      id: Date.now(), // Temporary ID
-      supplier_id: selectedSupplier.id,
-      supplier_name: selectedSupplier.name,
-      sku: formData.sku,
-      unit_cost: parseFloat(formData.unit_cost),
-      base_unit: formData.base_unit,
-    };
-
-    setSuppliers((prev) => [...prev, newSupplier]);
-    setFormData({ supplier_id: '', sku: '', unit_cost: '', base_unit: '' });
+    addSupplierMutation.mutate(
+      {
+        ingredientId,
+        data: {
+          supplier_id: selectedSupplier.id.toString(),
+          supplier_name: selectedSupplier.name,
+          sku: formData.sku || null,
+          pack_size: parseFloat(formData.pack_size),
+          pack_unit: formData.pack_unit,
+          price_per_pack: parseFloat(formData.price_per_pack),
+          cost_per_unit: parseFloat(formData.unit_cost),
+          currency: "SGD",
+          is_preferred: formData.is_preferred,
+          source: "manual"
+        },
+      },
+      {
+        onSuccess: () => {
+          setFormData({
+            supplier_id: '',
+            sku: '',
+            unit_cost: '',
+            pack_unit: '',
+            pack_size: '',
+            price_per_pack: '',
+            is_preferred: false,
+          });
+        },
+      }
+    );
   };
 
   if (error) {
@@ -190,77 +285,8 @@ export default function IngredientPage({ params }: IngredientPageProps) {
                   </h2>
                 </div>
 
-                {/* Suppliers Table */}
-                {suppliers.length > 0 ? (
-                  <div className="overflow-x-auto mb-6">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                          <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
-                            Supplier ID
-                          </th>
-                          <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
-                            Supplier Name
-                          </th>
-                          <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
-                            SKU
-                          </th>
-                          <th className="text-right py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
-                            Unit Cost
-                          </th>
-                          <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
-                            Base Unit
-                          </th>
-                          <th className="py-3 px-2 w-12"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {suppliers.map((supplier) => (
-                          <tr
-                            key={supplier.id}
-                            className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                          >
-                            <td className="py-3 px-2 text-zinc-600 dark:text-zinc-300">
-                              {supplier.supplier_id}
-                            </td>
-                            <td className="py-3 px-2 text-zinc-900 dark:text-zinc-100 font-medium">
-                              {supplier.supplier_name}
-                            </td>
-                            <td className="py-3 px-2 text-zinc-600 dark:text-zinc-300 font-mono text-xs">
-                              {supplier.sku}
-                            </td>
-                            <td className="py-3 px-2 text-right text-zinc-900 dark:text-zinc-100">
-                              {formatCurrency(supplier.unit_cost)}
-                            </td>
-                            <td className="py-3 px-2">
-                              <Badge variant="secondary">{supplier.base_unit}</Badge>
-                            </td>
-                            <td className="py-3 px-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteSupplier(supplier.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-6 mb-6 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-lg">
-                    <Truck className="h-8 w-8 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
-                    <p className="text-zinc-400 dark:text-zinc-500">
-                      No suppliers added yet
-                    </p>
-                  </div>
-                )}
-
                 {/* Add Supplier Form */}
-                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                <div className="border-b border-zinc-100 dark:border-zinc-800 pb-4 mb-4">
                   <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3 flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     Add Supplier
@@ -300,6 +326,38 @@ export default function IngredientPage({ params }: IngredientPageProps) {
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                          Pack Size
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={formData.pack_size}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, pack_size: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                          Price/Pack
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={formData.price_per_pack}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, price_per_pack: e.target.value }))
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                           Unit Cost
                         </label>
                         <Input
@@ -315,12 +373,12 @@ export default function IngredientPage({ params }: IngredientPageProps) {
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                          Base Unit
+                          Pack Unit
                         </label>
                         <Select
-                          value={formData.base_unit}
+                          value={formData.pack_unit}
                           onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, base_unit: e.target.value }))
+                            setFormData((prev) => ({ ...prev, pack_unit: e.target.value }))
                           }
                           options={[
                             { value: '', label: 'Select unit...' },
@@ -328,23 +386,166 @@ export default function IngredientPage({ params }: IngredientPageProps) {
                           ]}
                         />
                       </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <Button
-                        type="submit"
-                        disabled={
-                          !formData.supplier_id ||
-                          !formData.sku ||
-                          !formData.unit_cost ||
-                          !formData.base_unit
-                        }
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add Supplier
-                      </Button>
+                      <div className="flex items-center gap-2 pt-5">
+                        <input
+                          type="checkbox"
+                          id="is_preferred"
+                          checked={formData.is_preferred}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, is_preferred: e.target.checked }))
+                          }
+                          className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600"
+                        />
+                        <label htmlFor="is_preferred" className="text-sm text-zinc-700 dark:text-zinc-300">
+                          Preferred Supplier
+                        </label>
+                      </div>
+                      <div className="flex items-end justify-end">
+                        <Button
+                          type="submit"
+                          disabled={
+                            !formData.supplier_id ||
+                            !formData.unit_cost ||
+                            !formData.pack_unit ||
+                            !formData.pack_size ||
+                            !formData.price_per_pack ||
+                            addSupplierMutation.isPending
+                          }
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Supplier
+                        </Button>
+                      </div>
                     </div>
                   </form>
                 </div>
+
+                {/* Suppliers Table */}
+                {suppliers.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                          <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
+                            Supplier ID
+                          </th>
+                          <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
+                            Supplier Name
+                          </th>
+                          <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
+                            SKU
+                          </th>
+                          <th className="text-right py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
+                            Pack Size
+                          </th>
+                          <th className="text-right py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
+                            Price/Pack
+                          </th>
+                          <th className="text-center py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
+                            Preferred
+                          </th>
+                          <th className="text-right py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
+                            Cost/Unit
+                          </th>
+                          <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
+                            Pack Unit
+                          </th>
+                          <th className="py-3 px-2 w-12"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {suppliers.map((supplier) => (
+                          <tr
+                            key={supplier.supplier_id}
+                            className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                          >
+                            <td className="py-3 px-2 text-zinc-600 dark:text-zinc-300">
+                              {supplier.supplier_id}
+                            </td>
+                            <td className="py-3 px-2 text-zinc-900 dark:text-zinc-100 font-medium">
+                              <EditableCell
+                                value={supplier.supplier_name}
+                                onSave={(value) => handleUpdateSupplier(supplier.supplier_id, { supplier_name: value })}
+                              />
+                            </td>
+                            <td className="py-3 px-2 text-zinc-600 dark:text-zinc-300 font-mono text-xs">
+                              <EditableCell
+                                value={supplier.sku ?? ''}
+                                onSave={(value) => handleUpdateSupplier(supplier.supplier_id, { sku: value || null })}
+                                displayValue={supplier.sku ?? '-'}
+                              />
+                            </td>
+                            <td className="py-3 px-2 text-right text-zinc-900 dark:text-zinc-100">
+                              <EditableCell
+                                value={supplier.pack_size.toString()}
+                                onSave={(value) => handleUpdateSupplier(supplier.supplier_id, { pack_size: parseFloat(value) })}
+                                type="number"
+                                className="text-right"
+                              />
+                            </td>
+                            <td className="py-3 px-2 text-right text-zinc-900 dark:text-zinc-100">
+                              <EditableCell
+                                value={supplier.price_per_pack.toString()}
+                                onSave={(value) => handleUpdateSupplier(supplier.supplier_id, { price_per_pack: parseFloat(value) })}
+                                type="number"
+                                className="text-right"
+                                displayValue={formatCurrency(supplier.price_per_pack)}
+                              />
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={supplier.is_preferred}
+                                onChange={(e) => handleUpdateSupplier(supplier.supplier_id, { is_preferred: e.target.checked })}
+                                className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                              />
+                            </td>
+                            <td className="py-3 px-2 text-right text-zinc-900 dark:text-zinc-100">
+                              <EditableCell
+                                value={supplier.cost_per_unit.toString()}
+                                onSave={(value) => handleUpdateSupplier(supplier.supplier_id, { cost_per_unit: parseFloat(value) })}
+                                type="number"
+                                className="text-right"
+                                displayValue={formatCurrency(supplier.cost_per_unit)}
+                              />
+                            </td>
+                            <td className="py-3 px-2">
+                              <select
+                                value={supplier.pack_unit}
+                                onChange={(e) => handleUpdateSupplier(supplier.supplier_id, { pack_unit: e.target.value })}
+                                className="px-1 py-0.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-700 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                              >
+                                {UNIT_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.value}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="py-3 px-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteSupplier(supplier.supplier_id)}
+                                disabled={removeSupplierMutation.isPending}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-lg">
+                    <Truck className="h-8 w-8 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
+                    <p className="text-zinc-400 dark:text-zinc-500">
+                      No suppliers added yet
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </>
