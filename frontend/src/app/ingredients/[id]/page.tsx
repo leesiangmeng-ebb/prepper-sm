@@ -3,17 +3,9 @@
 import { use, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Edit2, ImagePlus, Plus, Trash2, Truck } from 'lucide-react';
-import { useIngredient } from '@/lib/hooks';
+import { useIngredient, useSuppliers } from '@/lib/hooks';
 import { Badge, Button, Card, CardContent, Input, Select, Skeleton } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
-
-// Hardcoded suppliers data (to be replaced with API call later)
-const AVAILABLE_SUPPLIERS = [
-  { id: 1, name: 'Fresh Farms Co.' },
-  { id: 2, name: 'Metro Wholesale' },
-  { id: 3, name: 'Organic Direct' },
-  { id: 4, name: 'Prime Foods Ltd.' },
-];
 
 // Unit options (same as Add Ingredient form)
 const UNIT_OPTIONS = [
@@ -48,6 +40,7 @@ export default function IngredientPage({ params }: IngredientPageProps) {
   const ingredientId = parseInt(id, 10);
 
   const { data: ingredient, isLoading, error } = useIngredient(ingredientId);
+  const { data: availableSuppliers } = useSuppliers();
 
   // Supplier state management
   const [suppliers, setSuppliers] = useState<IngredientSupplier[]>(INITIAL_SUPPLIERS);
@@ -65,7 +58,7 @@ export default function IngredientPage({ params }: IngredientPageProps) {
   const handleAddSupplier = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const selectedSupplier = AVAILABLE_SUPPLIERS.find(
+    const selectedSupplier = availableSuppliers?.find(
       (s) => s.id === parseInt(formData.supplier_id, 10)
     );
 
@@ -285,7 +278,7 @@ export default function IngredientPage({ params }: IngredientPageProps) {
                           }
                           options={[
                             { value: '', label: 'Select supplier...' },
-                            ...AVAILABLE_SUPPLIERS.map((s) => ({
+                            ...(availableSuppliers ?? []).map((s) => ({
                               value: s.id.toString(),
                               label: s.name,
                             })),

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import { useSuppliers, useCreateSupplier } from '@/lib/hooks';
-import { PageHeader, SearchInput, Button, Skeleton, Input, Card, CardHeader, CardTitle, CardContent, Badge } from '@/components/ui';
+import { PageHeader, SearchInput, Button, Skeleton, Input, Card, CardHeader, CardTitle } from '@/components/ui';
 import { toast } from 'sonner';
 import type { Supplier } from '@/types';
 
@@ -15,11 +15,6 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
           <CardTitle className="truncate">{supplier.name}</CardTitle>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-zinc-500">{supplier.sku ? <>{supplier.sku}</> : <>No SKU</>}</span>
-        </div>
-      </CardContent>
     </Card>
   );
 }
@@ -27,7 +22,6 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
 function NewSupplierForm({ onClose }: { onClose: () => void }) {
   const createSupplier = useCreateSupplier();
   const [name, setName] = useState('');
-  const [sku, setSku] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +32,6 @@ function NewSupplierForm({ onClose }: { onClose: () => void }) {
     createSupplier.mutate(
       {
         name: name.trim(),
-        sku: sku.trim() || null,
       },
       {
         onSuccess: () => {
@@ -63,16 +56,6 @@ function NewSupplierForm({ onClose }: { onClose: () => void }) {
           autoFocus
         />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-          SKU
-        </label>
-        <Input
-          value={sku}
-          onChange={(e) => setSku(e.target.value)}
-          placeholder="Enter SKU (optional)"
-        />
-      </div>
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={createSupplier.isPending}>
           Add Supplier
@@ -95,7 +78,7 @@ export default function SuppliersPage() {
     if (!suppliers) return [];
 
     return suppliers.filter((supplier) => {
-      if (search && !supplier.name.toLowerCase().includes(search.toLowerCase()) && !supplier.sku?.toLowerCase().includes(search.toLowerCase())) {
+      if (search && !supplier.name.toLowerCase().includes(search.toLowerCase())) {
         return false;
       }
       return true;

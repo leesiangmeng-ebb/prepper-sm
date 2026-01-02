@@ -24,7 +24,6 @@ def upgrade() -> None:
         'suppliers',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column('sku', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id')

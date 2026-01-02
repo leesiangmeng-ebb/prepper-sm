@@ -9,7 +9,6 @@ class SupplierBase(SQLModel):
     """Shared fields for Supplier."""
 
     name: str = Field(index=True)
-    sku: str | None = Field(default=None)
 
 
 class Supplier(SupplierBase, table=True):
@@ -28,11 +27,9 @@ class SupplierCreate(SQLModel):
     """Schema for creating a new supplier."""
 
     name: str
-    sku: str | None = None
 
 
 class SupplierUpdate(SQLModel):
     """Schema for updating a supplier (all fields optional)."""
 
     name: str | None = None
-    sku: str | None = None
