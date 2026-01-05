@@ -27,6 +27,9 @@ import type {
   IngredientSupplierEntry,
   AddIngredientSupplierRequest,
   UpdateIngredientSupplierRequest,
+  SupplierIngredientEntry,
+  AddSupplierIngredientRequest,
+  UpdateSupplierIngredientRequest,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -400,6 +403,56 @@ export async function updateIngredientSupplier(
 export async function removeIngredientSupplier(
   ingredientId: number,
   supplierId: string
+): Promise<Ingredient> {
+  return fetchApi<Ingredient>(`/ingredients/${ingredientId}/suppliers/${supplierId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ============ Supplier Ingredients ============
+
+export async function getSupplierIngredients(
+  supplierId: number
+): Promise<SupplierIngredientEntry[]> {
+  return fetchApi<SupplierIngredientEntry[]>(`/suppliers/${supplierId}/ingredients`);
+}
+
+export async function addSupplierIngredient(
+  supplierId: number,
+  data: AddSupplierIngredientRequest
+): Promise<Ingredient> {
+  // This adds the supplier to an ingredient, so we use the ingredient's endpoint
+  return fetchApi<Ingredient>(`/ingredients/${data.ingredient_id}/suppliers`, {
+    method: 'POST',
+    body: JSON.stringify({
+      supplier_id: supplierId.toString(),
+      supplier_name: '', // Will be set by the caller
+      sku: data.sku,
+      pack_size: data.pack_size,
+      pack_unit: data.pack_unit,
+      price_per_pack: data.price_per_pack,
+      cost_per_unit: data.cost_per_unit,
+      currency: data.currency || 'SGD',
+      is_preferred: data.is_preferred || false,
+      source: data.source || 'manual',
+    }),
+  });
+}
+
+export async function updateSupplierIngredient(
+  supplierId: number,
+  ingredientId: number,
+  data: UpdateSupplierIngredientRequest
+): Promise<Ingredient> {
+  return fetchApi<Ingredient>(`/ingredients/${ingredientId}/suppliers/${supplierId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function removeSupplierIngredient(
+  supplierId: number,
+  ingredientId: number
 ): Promise<Ingredient> {
   return fetchApi<Ingredient>(`/ingredients/${ingredientId}/suppliers/${supplierId}`, {
     method: 'DELETE',

@@ -79,3 +79,20 @@ def delete_supplier(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Supplier not found",
         )
+
+
+@router.get("/{supplier_id}/ingredients", response_model=list[dict])
+def get_supplier_ingredients(
+    supplier_id: int,
+    session: Session = Depends(get_session),
+):
+    """Get all ingredients associated with a supplier."""
+    service = SupplierService(session)
+    # Check if supplier exists
+    supplier = service.get_supplier(supplier_id)
+    if not supplier:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Supplier not found",
+        )
+    return service.get_supplier_ingredients(supplier_id)

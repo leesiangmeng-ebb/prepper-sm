@@ -289,3 +289,43 @@ export interface UpdateIngredientSupplierRequest {
   currency?: string;
   is_preferred?: boolean;
 }
+
+// ============ Supplier Ingredient Entry Types ============
+
+export interface SupplierIngredientEntry {
+  ingredient_id: number;
+  ingredient_name: string;
+  base_unit: string;
+  supplier_id: string;
+  sku: string | null;
+  pack_size: number;
+  pack_unit: string;
+  price_per_pack: number;
+  cost_per_unit: number;
+  currency: string;
+  is_preferred: boolean;
+  source: string;
+  last_updated: string | null;
+}
+
+export interface AddSupplierIngredientRequest {
+  ingredient_id: number;
+  sku?: string | null;
+  pack_size: number;
+  pack_unit: string;
+  price_per_pack: number;
+  cost_per_unit: number;
+  currency?: string;
+  is_preferred?: boolean;
+  source?: string;
+}
+
+export interface UpdateSupplierIngredientRequest {
+  sku?: string | null;
+  pack_size?: number;
+  pack_unit?: string;
+  price_per_pack?: number;
+  cost_per_unit?: number;
+  currency?: string;
+  is_preferred?: boolean;
+}

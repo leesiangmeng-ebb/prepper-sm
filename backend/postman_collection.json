@@ -1164,14 +1164,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"ABC Foods Pte Ltd\"\n}"
+              "raw": "{\n  \"name\": \"ABC Foods Pte Ltd\",\n  \"address\": \"123 Food Street, Singapore 123456\",\n  \"phone_number\": \"+65 6123 4567\",\n  \"email\": \"contact@abcfoods.sg\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/suppliers",
               "host": ["{{baseUrl}}"],
               "path": ["suppliers"]
             },
-            "description": "Create a new supplier"
+            "description": "Create a new supplier with contact details"
           }
         },
         {
@@ -1212,14 +1212,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"ABC Foods International\"\n}"
+              "raw": "{\n  \"name\": \"ABC Foods International\",\n  \"address\": \"456 New Food Street, Singapore 654321\",\n  \"phone_number\": \"+65 6789 0123\",\n  \"email\": \"info@abcfoods-intl.sg\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/suppliers/{{supplierId}}",
               "host": ["{{baseUrl}}"],
               "path": ["suppliers", "{{supplierId}}"]
             },
-            "description": "Update a supplier"
+            "description": "Update a supplier's details (name, address, phone, email)"
           }
         },
         {
@@ -1233,6 +1233,19 @@
               "path": ["suppliers", "{{supplierId}}"]
             },
             "description": "Delete a supplier"
+          }
+        },
+        {
+          "name": "Get Supplier Ingredients",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/suppliers/{{supplierId}}/ingredients",
+              "host": ["{{baseUrl}}"],
+              "path": ["suppliers", "{{supplierId}}", "ingredients"]
+            },
+            "description": "Get all ingredients associated with a supplier"
           }
         }
       ]
