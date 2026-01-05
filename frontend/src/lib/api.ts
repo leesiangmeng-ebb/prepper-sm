@@ -195,8 +195,8 @@ export async function updateStructuredInstructions(
 
 // ============ Ingredients ============
 
-export async function getIngredients(): Promise<Ingredient[]> {
-  return fetchApi<Ingredient[]>('/ingredients');
+export async function getIngredients(activeOnly: boolean = true): Promise<Ingredient[]> {
+  return fetchApi<Ingredient[]>(`/ingredients?active_only=${activeOnly}`);
 }
 
 export async function getIngredient(id: number): Promise<Ingredient> {

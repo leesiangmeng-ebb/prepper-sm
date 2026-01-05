@@ -44,13 +44,13 @@ function groupIngredients(ingredients: Ingredient[], groupBy: GroupByOption): Re
 }
 
 export default function IngredientsPage() {
-  const { data: ingredients, isLoading, error } = useIngredients();
   const deactivateIngredient = useDeactivateIngredient();
 
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false)
   const [groupBy, setGroupBy] = useState<GroupByOption>('none');
   const [showArchived, setShowArchived] = useState(false);
+  const { data: ingredients, isLoading, error } = useIngredients(showArchived);
 
   // Filter and group ingredients
   const filteredIngredients = useMemo(() => {
@@ -59,10 +59,6 @@ export default function IngredientsPage() {
     return ingredients.filter((ing) => {
       // Filter by search
       if (search && !ing.name.toLowerCase().includes(search.toLowerCase())) {
-        return false;
-      }
-      // Filter archived unless showing them
-      if (!showArchived && !ing.is_active) {
         return false;
       }
       return true;

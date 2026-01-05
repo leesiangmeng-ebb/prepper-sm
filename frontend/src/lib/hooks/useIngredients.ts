@@ -8,10 +8,11 @@ import type {
   UpdateIngredientSupplierRequest,
 } from '@/types';
 
-export function useIngredients() {
+export function useIngredients(showArchived: boolean = false) {
+  const activeOnly = !showArchived;
   return useQuery({
-    queryKey: ['ingredients'],
-    queryFn: api.getIngredients,
+    queryKey: ['ingredients', { activeOnly }],
+    queryFn: () => api.getIngredients(activeOnly),
   });
 }
 
