@@ -228,16 +228,25 @@ export interface UpdateTastingNoteRequest {
 export interface Supplier {
   id: number;
   name: string;
+  address: string | null;
+  phone_number: string | null;
+  email: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateSupplierRequest {
   name: string;
+  address?: string;
+  phone_number?: string;
+  email?: string;
 }
 
 export interface UpdateSupplierRequest {
   name?: string;
+  address?: string;
+  phone_number?: string;
+  email?: string;
 }
 
 // ============ Ingredient Supplier Entry Types ============

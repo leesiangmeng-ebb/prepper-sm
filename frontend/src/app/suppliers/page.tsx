@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus, Trash2, Check, X } from 'lucide-react';
+import { Plus, Trash2, Check, X, MapPin, Phone, Mail } from 'lucide-react';
 import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier } from '@/lib/hooks';
-import { PageHeader, SearchInput, Button, Skeleton, Input, Card, CardHeader, CardTitle } from '@/components/ui';
+import { PageHeader, SearchInput, Button, Skeleton, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import { toast } from 'sonner';
 import type { Supplier } from '@/types';
 
 function SupplierCard({ supplier }: { supplier: Supplier }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(supplier.name);
+  const [editAddress, setEditAddress] = useState(supplier.address || '');
+  const [editPhone, setEditPhone] = useState(supplier.phone_number || '');
+  const [editEmail, setEditEmail] = useState(supplier.email || '');
   const updateSupplier = useUpdateSupplier();
   const deleteSupplier = useDeleteSupplier();
 
@@ -18,12 +21,26 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
       toast.error('Supplier name is required');
       return;
     }
-    if (editName.trim() === supplier.name) {
+    const hasChanges =
+      editName.trim() !== supplier.name ||
+      editAddress.trim() !== (supplier.address || '') ||
+      editPhone.trim() !== (supplier.phone_number || '') ||
+      editEmail.trim() !== (supplier.email || '');
+
+    if (!hasChanges) {
       setIsEditing(false);
       return;
     }
     updateSupplier.mutate(
-      { id: supplier.id, data: { name: editName.trim() } },
+      {
+        id: supplier.id,
+        data: {
+          name: editName.trim(),
+          address: editAddress.trim() || undefined,
+          phone_number: editPhone.trim() || undefined,
+          email: editEmail.trim() || undefined,
+        },
+      },
       {
         onSuccess: () => {
           toast.success('Supplier updated');
@@ -36,6 +53,9 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
 
   const handleCancel = () => {
     setEditName(supplier.name);
+    setEditAddress(supplier.address || '');
+    setEditPhone(supplier.phone_number || '');
+    setEditEmail(supplier.email || '');
     setIsEditing(false);
   };
 
@@ -57,10 +77,7 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
               onChange={(e) => setEditName(e.target.value)}
               className="flex-1"
               autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSave();
-                if (e.key === 'Escape') handleCancel();
-              }}
+              placeholder="Supplier name"
             />
             <Button
               variant="ghost"
@@ -93,15 +110,150 @@ function SupplierCard({ supplier }: { supplier: Supplier }) {
           </div>
         )}
       </CardHeader>
+      <CardContent>
+        {isEditing ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-zinc-400 shrink-0" />
+              <Input
+                value={editAddress}
+                onChange={(e) => setEditAddress(e.target.value)}
+                placeholder="Address"
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-zinc-400 shrink-0" />
+              <Input
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="Phone number"
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-zinc-400 shrink-0" />
+              <Input
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                placeholder="Email"
+                type="email"
+                className="flex-1"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+            {supplier.address && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span className="truncate">{supplier.address}</span>
+              </div>
+            )}
+            {supplier.phone_number && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 shrink-0" />
+                <span>{supplier.phone_number}</span>
+              </div>
+            )}
+            {supplier.email && (
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 shrink-0" />
+                <span className="truncate">{supplier.email}</span>
+              </div>
+            )}
+            {!supplier.address && !supplier.phone_number && !supplier.email && (
+              <p className="text-zinc-400 dark:text-zinc-500 italic">No contact info</p>
+            )}
+          </div>
+        )}
+      </CardContent>
     </Card>
+  );
+}
+
+function NewSupplierForm({ onClose }: { onClose: () => void }) {
+  const createSupplier = useCreateSupplier();
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast.error('Supplier name is required');
+      return;
+    }
+    createSupplier.mutate(
+      {
+        name: name.trim(),
+        address: address.trim() || undefined,
+        phone_number: phone.trim() || undefined,
+        email: email.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Supplier created');
+          onClose();
+        },
+        onError: () => toast.error('Failed to create supplier'),
+      }
+    );
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Supplier name"
+        autoFocus
+      />
+      <div className="flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-zinc-400 shrink-0" />
+        <Input
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Address"
+          className="flex-1"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <Phone className="h-4 w-4 text-zinc-400 shrink-0" />
+        <Input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Phone number"
+          className="flex-1"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <Mail className="h-4 w-4 text-zinc-400 shrink-0" />
+        <Input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          className="flex-1"
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={createSupplier.isPending}>
+          Add
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }
 
 export default function SuppliersPage() {
   const { data: suppliers, isLoading, error } = useSuppliers();
-  const createSupplier = useCreateSupplier();
-  const [name, setName] = useState('');
   const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false);
 
   const filteredSuppliers = useMemo(() => {
     if (!suppliers) return [];
@@ -113,26 +265,6 @@ export default function SuppliersPage() {
       return true;
     });
   }, [suppliers, search]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      toast.error('Supplier name is required');
-      return;
-    }
-    createSupplier.mutate(
-      {
-        name: name.trim(),
-      },
-      {
-        onSuccess: () => {
-          setName("");
-          toast.success('Supplier created');
-        },
-        onError: () => toast.error('Failed to create supplier'),
-      }
-    );
-  };
 
   if (error) {
     return (
@@ -151,20 +283,18 @@ export default function SuppliersPage() {
           title="Suppliers"
           description="Manage your ingredient suppliers"
         >
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Add new supplier"
-              autoFocus
-            />
-            <Button type="submit" disabled={createSupplier.isPending} className="shrink-0 whitespace-nowrap">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Supplier</span>
-            </Button>
-          </form>
-          {/* this is to just submit */}
+          <Button onClick={() => setShowForm(true)} disabled={showForm}>
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Supplier</span>
+          </Button>
         </PageHeader>
+        {showForm && (
+          <div className="w-full d-flex justify-items-end">
+            <div className="w-fit mb-3">
+              <NewSupplierForm onClose={() => setShowForm(false)} />
+            </div>
+          </div>
+        )}
         {/* Toolbar */}
         <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center">
           <div className="flex-1 max-w-md">
