@@ -115,6 +115,17 @@ export function TopAppBar() {
     );
   }, [recipe, editedPrice, updateRecipe]);
 
+  const handlePublicToggle = useCallback(() => {
+    if (!recipe) return;
+    updateRecipe.mutate(
+      { id: recipe.id, data: { is_public: !recipe.is_public } },
+      {
+        onSuccess: () => toast.success(recipe.is_public ? 'Recipe is now private' : 'Recipe is now public'),
+        onError: () => toast.error('Failed to update visibility'),
+      }
+    );
+  }, [recipe, updateRecipe]);
+
   return (
     <header className="flex h-14 shrink-0 items-center border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
       {/* Recipe Name */}
@@ -193,6 +204,17 @@ export function TopAppBar() {
             options={STATUS_OPTIONS}
             className="w-28"
           />
+
+          {/* Public Toggle */}
+          <label className="flex items-center gap-2 rounded-md bg-zinc-100 px-3 py-1.5 text-sm dark:bg-zinc-800 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={recipe.is_public}
+              onChange={handlePublicToggle}
+              className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600"
+            />
+            <span className="text-zinc-600 dark:text-zinc-400">Public</span>
+          </label>
 
           {/* Cost per portion */}
           <div className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm dark:bg-zinc-800">

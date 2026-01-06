@@ -98,7 +98,7 @@ function RecipeListSkeleton() {
 }
 
 export function LeftPanel() {
-  const { selectedRecipeId, selectRecipe, userId } = useAppState();
+  const { selectedRecipeId, selectRecipe, userId, userType } = useAppState();
   const { data: recipes, isLoading, error } = useRecipes();
   const createRecipe = useCreateRecipe();
   const deleteRecipe = useDeleteRecipe();
@@ -106,11 +106,29 @@ export function LeftPanel() {
 
   const filteredRecipes = useMemo(() => {
     if (!recipes) return [];
-    const userOwnedRecipes = recipes.filter((r)=> r.created_by == userId)
-    if (!search.trim()) return userOwnedRecipes;
-    const lower = search.toLowerCase();
-    return userOwnedRecipes.filter((r) => r.name.toLowerCase().includes(lower));
-  }, [recipes, search]);
+
+    return recipes.filter((recipe) => {
+      // Filter by search
+      if (search.trim()) {
+        const lower = search.toLowerCase();
+        if (!recipe.name.toLowerCase().includes(lower)) {
+          return false;
+        }
+      }
+
+      // Admin users can see all recipes
+      if (userType === 'admin') {
+        return true;
+      }
+
+      // Show recipe if user is the owner OR if recipe is public
+      const currUserId = userId ? userId : null;
+      if (recipe.owner_id !== currUserId && !recipe.is_public) {
+        return false;
+      }
+      return true;
+    });
+  }, [recipes, search, userId, userType]);
 
   const handleCreate = () => {
     createRecipe.mutate(
@@ -120,6 +138,8 @@ export function LeftPanel() {
         yield_unit: 'portion',
         status: 'draft',
         created_by: userId || undefined,
+        is_public: false,
+        owner_id: userId || undefined,
       },
       {
         onSuccess: (newRecipe) => {

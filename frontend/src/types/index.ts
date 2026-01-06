@@ -24,6 +24,8 @@ export interface Recipe {
   selling_price_est: number | null;
   status: RecipeStatus;
   is_prep_recipe: boolean;
+  is_public: boolean;
+  owner_id: string | null;
   created_at: string;
   updated_at: string;
   ingredients?: RecipeIngredient[];
@@ -81,6 +83,8 @@ export interface CreateRecipeRequest {
   yield_unit?: string;
   status?: RecipeStatus;
   created_by?: string;
+  is_public?: boolean;
+  owner_id?: string;
 }
 
 export interface UpdateRecipeRequest {
@@ -91,6 +95,7 @@ export interface UpdateRecipeRequest {
   instructions_raw?: string | null;
   instructions_structured?: InstructionsStructured | null;
   status?: RecipeStatus;
+  is_public?: boolean;
 }
 
 export interface CreateIngredientRequest {

@@ -53,7 +53,7 @@ function groupRecipes(recipes: Recipe[], groupBy: GroupByOption): Record<string,
 }
 
 export default function RecipesPage() {
-  const { userId } = useAppState()
+  const { userId, userType } = useAppState()
   const { data: recipes, isLoading, error } = useRecipes();
   const createRecipe = useCreateRecipe();
 
@@ -75,13 +75,19 @@ export default function RecipesPage() {
         return false;
       }
 
-      // filter by user availability
-      if (recipe.created_by != userId) {
+      // Admin users can see all recipes
+      if (userType === 'admin') {
+        return true;
+      }
+
+      // Show recipe if user is the owner OR if recipe is public
+      const currUserId = userId ? userId : null;
+      if (recipe.owner_id !== currUserId && !recipe.is_public) {
         return false;
       }
       return true;
     });
-  }, [recipes, search, statusFilter]);
+  }, [recipes, search, statusFilter, userId, userType]);
 
   const handleCreate = () => {
     createRecipe.mutate(
@@ -91,6 +97,8 @@ export default function RecipesPage() {
         yield_unit: 'portion',
         status: 'draft',
         created_by: userId || undefined,
+        is_public: false,
+        owner_id: userId || undefined,
       },
       {
         onSuccess: (newRecipe) => {
