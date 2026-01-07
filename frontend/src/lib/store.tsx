@@ -34,9 +34,12 @@ function setStoredAuth(auth: StoredAuth) {
   }
 }
 
+export type CanvasTab = 'canvas' | 'overview' | 'ingredients' | 'costs' | 'instructions' | 'tasting' | 'versions';
+
 interface AppState {
   selectedRecipeId: number | null;
   instructionsTab: 'freeform' | 'steps';
+  canvasTab: CanvasTab;
   userId: string | null;
   jwt: string | null;
   userType: 'normal' | 'admin' | null;
@@ -45,6 +48,7 @@ interface AppState {
 interface AppContextValue extends AppState {
   selectRecipe: (id: number | null) => void;
   setInstructionsTab: (tab: 'freeform' | 'steps') => void;
+  setCanvasTab: (tab: CanvasTab) => void;
   setUserId: (id: string | null) => void;
   setJwt: (jwt: string | null) => void;
   setUserType: (userType: 'normal' | 'admin' | null) => void;
@@ -59,6 +63,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>({
     selectedRecipeId: null,
     instructionsTab: 'freeform',
+    canvasTab: 'canvas',
     userId: null,
     jwt: null,
     userType: null
@@ -95,6 +100,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, instructionsTab: tab }));
   }, []);
 
+  const setCanvasTab = useCallback((tab: CanvasTab) => {
+    setState((prev) => ({ ...prev, canvasTab: tab }));
+  }, []);
+
   const setUserId = useCallback((id: string | null) => {
     setState((prev) => ({ ...prev, userId: id }));
   }, []);
@@ -121,6 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...state,
         selectRecipe,
         setInstructionsTab,
+        setCanvasTab,
         setUserId,
         setJwt,
         setUserType,

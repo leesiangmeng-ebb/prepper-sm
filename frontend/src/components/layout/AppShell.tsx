@@ -5,13 +5,42 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { GripVertical } from 'lucide-react';
 import { TopAppBar } from './TopAppBar';
-import { LeftPanel } from './LeftPanel';
-import { RightPanel } from './RightPanel';
-import { RecipeCanvas } from './RecipeCanvas';
+import {
+  CanvasTab,
+  OverviewTab,
+  IngredientsTab,
+  CostsTab,
+  InstructionsTab,
+  TastingTab,
+  VersionsTab,
+} from './tabs';
 import { useAppState } from '@/lib/store';
 import { useAddRecipeIngredient } from '@/lib/hooks';
 import { toast } from 'sonner';
 import type { Ingredient } from '@/types';
+
+function TabContent() {
+  const { canvasTab } = useAppState();
+
+  switch (canvasTab) {
+    case 'canvas':
+      return <CanvasTab />;
+    case 'overview':
+      return <OverviewTab />;
+    case 'ingredients':
+      return <IngredientsTab />;
+    case 'costs':
+      return <CostsTab />;
+    case 'instructions':
+      return <InstructionsTab />;
+    case 'tasting':
+      return <TastingTab />;
+    case 'versions':
+      return <VersionsTab />;
+    default:
+      return <CanvasTab />;
+  }
+}
 
 function DragOverlayContent({ ingredient }: { ingredient: Ingredient }) {
   return (
@@ -98,9 +127,7 @@ export function AppShell() {
       <div className="flex h-full flex-col">
         <TopAppBar />
         <div className="flex flex-1 overflow-hidden">
-          <LeftPanel />
-          <RecipeCanvas />
-          <RightPanel />
+          <TabContent />
         </div>
       </div>
       <DragOverlay>
