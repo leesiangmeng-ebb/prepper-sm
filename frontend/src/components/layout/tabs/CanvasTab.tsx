@@ -114,7 +114,7 @@ function CanvasContent({ canEdit }: { canEdit: boolean }) {
         {/* Sub-Recipes Section */}
         <section className="mb-8">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold">Sub-Recipes</h2>
+            <h2 className="text-lg font-semibold">Items</h2>
             <p className="text-sm text-zinc-500">
               Drag recipes from the right panel to add them
             </p>

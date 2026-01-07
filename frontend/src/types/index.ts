@@ -62,18 +62,35 @@ export interface CostingBreakdown {
   ingredient_name: string;
   quantity: number;
   unit: string;
-  unit_cost: number;
-  line_cost: number;
+  quantity_in_base_unit: number;
+  base_unit: string;
+  cost_per_base_unit: number | null;
+  line_cost: number | null;
+}
+
+export interface SubRecipeCostItem {
+  link_id: number;
+  recipe_id: number;
+  recipe_name: string;
+  quantity: number;
+  unit: string;
+  sub_recipe_batch_cost: number | null;
+  sub_recipe_portion_cost: number | null;
+  line_cost: number | null;
 }
 
 export interface CostingResult {
   recipe_id: number;
-  total_batch_cost: number;
-  cost_per_portion: number;
+  recipe_name: string;
+  total_batch_cost: number | null;
+  cost_per_portion: number | null;
   yield_quantity: number;
   yield_unit: string;
   breakdown: CostingBreakdown[];
-  calculated_at: string;
+  sub_recipe_breakdown: SubRecipeCostItem[];
+  ingredient_cost: number | null;
+  sub_recipe_cost: number | null;
+  missing_costs: string[];
 }
 
 // API Request/Response types
