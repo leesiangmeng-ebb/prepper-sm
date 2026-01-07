@@ -65,7 +65,7 @@ app/
 │   └── costing.py               # CostingResult, CostBreakdownItem
 ├── domain/              # Business logic services
 │   ├── ingredient_service.py    # Ingredient CRUD + variants
-│   ├── recipe_service.py        # Recipe CRUD + status
+│   ├── recipe_service.py        # Recipe CRUD + status + fork
 │   ├── instructions_service.py  # Freeform → structured parsing
 │   ├── costing_service.py       # Unit conversion + cost calculations
 │   ├── subrecipe_service.py     # Sub-recipe hierarchy + cycle detection
@@ -73,7 +73,7 @@ app/
 │   ├── tasting_service.py       # Tasting sessions and notes
 │   └── supplier_service.py      # Supplier CRUD + supplier-ingredient links
 ├── api/                 # FastAPI routers (one per resource)
-│   ├── recipes.py               # Recipe CRUD
+│   ├── recipes.py               # Recipe CRUD + fork
 │   ├── recipe_ingredients.py    # Recipe ingredient links
 │   ├── ingredients.py           # Ingredient CRUD + suppliers
 │   ├── instructions.py          # Recipe instructions
@@ -134,11 +134,12 @@ components/
 All endpoints under `/api/v1`:
 
 **Core Resources:**
-- `/recipes` — CRUD + status + soft-delete
+- `/recipes` — CRUD + status + soft-delete + fork
 - `/ingredients` — CRUD + deactivate + categories + variants
 - `/suppliers` — CRUD + contact info (address, phone, email)
 
 **Recipe Sub-resources:**
+- `/recipes/{id}/fork` — create editable copy with ingredients & instructions
 - `/recipes/{id}/ingredients` — add, update, remove, reorder
 - `/recipes/{id}/sub-recipes` — sub-recipe hierarchy (BOM) with cycle detection
 - `/recipes/{id}/instructions` — raw, parse (LLM), structured

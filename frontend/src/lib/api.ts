@@ -112,6 +112,16 @@ export async function deleteRecipe(id: number): Promise<void> {
   });
 }
 
+export async function forkRecipe(
+  id: number,
+  newOwnerId?: string
+): Promise<Recipe> {
+  return fetchApi<Recipe>(`/recipes/${id}/fork`, {
+    method: 'POST',
+    body: JSON.stringify({ new_owner_id: newOwnerId }),
+  });
+}
+
 // ============ Recipe Ingredients ============
 
 export async function getRecipeIngredients(

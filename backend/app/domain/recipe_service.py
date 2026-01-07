@@ -80,6 +80,58 @@ class RecipeService:
         """Soft-delete a recipe by setting status to archived."""
         return self.set_recipe_status(recipe_id, RecipeStatus.ARCHIVED)
 
+    def fork_recipe(self, recipe_id: int, new_owner_id: str | None = None) -> Recipe | None:
+        """
+        Fork a recipe - create a copy with all ingredients.
+
+        The forked recipe will:
+        - Have a new name with "(Fork)" suffix
+        - Be owned by new_owner_id (or same as original if not provided)
+        - Start as draft status
+        - Copy all recipe ingredients
+        - Copy instructions (raw and structured)
+        """
+        original = self.get_recipe(recipe_id)
+        if not original:
+            return None
+
+        # Create the forked recipe
+        forked = Recipe(
+            name=f"{original.name} (Fork)",
+            yield_quantity=original.yield_quantity,
+            yield_unit=original.yield_unit,
+            is_prep_recipe=original.is_prep_recipe,
+            instructions_raw=original.instructions_raw,
+            instructions_structured=original.instructions_structured,
+            selling_price_est=original.selling_price_est,
+            status=RecipeStatus.DRAFT,
+            is_public=False,  # Forked recipes start as private
+            owner_id=new_owner_id if new_owner_id else original.owner_id,
+            created_by=new_owner_id,
+        )
+        self.session.add(forked)
+        self.session.commit()
+        self.session.refresh(forked)
+
+        # Copy all recipe ingredients
+        original_ingredients = self.get_recipe_ingredients(recipe_id)
+        for ri in original_ingredients:
+            new_ri = RecipeIngredient(
+                recipe_id=forked.id,
+                ingredient_id=ri.ingredient_id,
+                quantity=ri.quantity,
+                unit=ri.unit,
+                sort_order=ri.sort_order,
+                unit_price=ri.unit_price,
+                base_unit=ri.base_unit,
+                supplier_id=ri.supplier_id,
+            )
+            self.session.add(new_ri)
+
+        self.session.commit()
+        self.session.refresh(forked)
+        return forked
+
     # --- Recipe Ingredient Management ---
 
     def get_recipe_ingredients(self, recipe_id: int) -> list[RecipeIngredient]:

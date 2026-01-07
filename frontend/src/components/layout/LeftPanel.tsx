@@ -23,11 +23,13 @@ function getStatusVariant(status: RecipeStatus): 'default' | 'success' | 'second
 function RecipeCard({
   recipe,
   isSelected,
+  canEdit,
   onClick,
   onDelete,
 }: {
   recipe: Recipe;
   isSelected: boolean;
+  canEdit: boolean;
   onClick: () => void;
   onDelete: () => void;
 }) {
@@ -67,14 +69,17 @@ function RecipeCard({
             {recipe.status}
           </Badge>
           <button
-            onClick={handleDeleteClick}
+            onClick={canEdit ? handleDeleteClick : undefined}
             className={cn(
               'rounded p-1 transition-all',
-              confirmDelete
-                ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                : 'text-zinc-400 opacity-0 hover:bg-zinc-200 hover:text-zinc-600 group-hover:opacity-100 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'
+              !canEdit
+                ? 'invisible'
+                : confirmDelete
+                  ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                  : 'text-zinc-400 opacity-0 hover:bg-zinc-200 hover:text-zinc-600 group-hover:opacity-100 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'
             )}
-            title={confirmDelete ? 'Click again to confirm' : 'Delete recipe'}
+            disabled={!canEdit}
+            title={!canEdit ? undefined : confirmDelete ? 'Click again to confirm' : 'Delete recipe'}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -214,15 +219,20 @@ export function LeftPanel() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filteredRecipes.map((recipe) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                isSelected={recipe.id === selectedRecipeId}
-                onClick={() => selectRecipe(recipe.id)}
-                onDelete={() => handleDelete(recipe.id)}
-              />
-            ))}
+            {filteredRecipes.map((recipe) => {
+              const canEditRecipe =
+                userType === 'admin' || (userId !== null && recipe.owner_id === userId);
+              return (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  isSelected={recipe.id === selectedRecipeId}
+                  canEdit={canEditRecipe}
+                  onClick={() => selectRecipe(recipe.id)}
+                  onDelete={() => handleDelete(recipe.id)}
+                />
+              );
+            })}
           </div>
         )}
       </div>

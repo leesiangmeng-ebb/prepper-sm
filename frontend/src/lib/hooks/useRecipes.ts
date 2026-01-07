@@ -67,3 +67,15 @@ export function useDeleteRecipe() {
     },
   });
 }
+
+export function useForkRecipe() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, newOwnerId }: { id: number; newOwnerId?: string }) =>
+      api.forkRecipe(id, newOwnerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    },
+  });
+}

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAppState } from '@/lib/store';
-import { useRecipe, useUpdateRecipe, useUpdateRecipeStatus } from '@/lib/hooks';
+import { useRecipe, useUpdateRecipe, useUpdateRecipeStatus, useForkRecipe } from '@/lib/hooks';
 import { useCosting } from '@/lib/hooks';
-import { Input, Select } from '@/components/ui';
+import { Button, Input, Select } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { RecipeStatus } from '@/types';
@@ -16,11 +16,17 @@ const STATUS_OPTIONS = [
 ];
 
 export function TopAppBar() {
-  const { selectedRecipeId } = useAppState();
+  const { selectedRecipeId, userId, userType } = useAppState();
   const { data: recipe } = useRecipe(selectedRecipeId);
   const { data: costing } = useCosting(selectedRecipeId);
   const updateRecipe = useUpdateRecipe();
   const updateStatus = useUpdateRecipeStatus();
+  const forkRecipe = useForkRecipe();
+
+  // Determine if the current user can edit this recipe
+  // Allowed if: user is admin OR user is the owner of the recipe
+  const canEdit =
+    userType === 'admin' || (userId !== null && recipe?.owner_id === userId);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
@@ -126,12 +132,25 @@ export function TopAppBar() {
     );
   }, [recipe, updateRecipe]);
 
+  const handleForkRecipe = useCallback(() => {
+    if (!recipe) return;
+    forkRecipe.mutate(
+      { id: recipe.id, newOwnerId: userId ?? undefined },
+      {
+        onSuccess: (forkedRecipe) => {
+          toast.success(`Recipe forked as "${forkedRecipe.name}"`);
+        },
+        onError: () => toast.error('Failed to fork recipe'),
+      }
+    );
+  }, [recipe, forkRecipe, userId]);
+
   return (
     <header className="flex h-14 shrink-0 items-center border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
       {/* Recipe Name */}
       <div className="flex-1">
         {recipe ? (
-          isEditingName ? (
+          isEditingName && canEdit ? (
             <Input
               value={editedName}
               onChange={(e) => setEditedName(e.target.value)}
@@ -142,8 +161,8 @@ export function TopAppBar() {
             />
           ) : (
             <h1
-              onClick={() => setIsEditingName(true)}
-              className="cursor-pointer text-xl font-semibold hover:text-zinc-600 dark:hover:text-zinc-400"
+              onClick={() => canEdit && setIsEditingName(true)}
+              className={canEdit ? "cursor-pointer text-xl font-semibold hover:text-zinc-600 dark:hover:text-zinc-400" : "text-xl font-semibold"}
             >
               {recipe.name}
             </h1>
@@ -156,8 +175,17 @@ export function TopAppBar() {
       {/* Recipe Metadata */}
       {recipe && (
         <div className="flex items-center gap-4">
+          {/* Fork Recipe Button */}
+          <Button
+            onClick={handleForkRecipe}
+            disabled={forkRecipe.isPending}
+            size="sm"
+          >
+            {forkRecipe.isPending ? 'Forking...' : 'Fork Recipe'}
+          </Button>
+
           {/* Yield */}
-          {isEditingYield ? (
+          {isEditingYield && canEdit ? (
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -186,15 +214,15 @@ export function TopAppBar() {
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setIsEditingYield(true)}
-              className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+            <div
+              onClick={() => canEdit && setIsEditingYield(true)}
+              className={canEdit ? "rounded-md bg-zinc-100 px-3 py-1.5 text-sm hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 cursor-pointer" : "rounded-md bg-zinc-100 px-3 py-1.5 text-sm dark:bg-zinc-800"}
             >
               <span className="text-zinc-500">Yield:</span>{' '}
               <span className="font-medium">
                 {recipe.yield_quantity} {recipe.yield_unit}
               </span>
-            </button>
+            </div>
           )}
 
           {/* Status */}
@@ -203,15 +231,17 @@ export function TopAppBar() {
             onChange={handleStatusChange}
             options={STATUS_OPTIONS}
             className="w-28"
+            disabled={!canEdit}
           />
 
           {/* Public Toggle */}
-          <label className="flex items-center gap-2 rounded-md bg-zinc-100 px-3 py-1.5 text-sm dark:bg-zinc-800 cursor-pointer">
+          <label className={`flex items-center gap-2 rounded-md bg-zinc-100 px-3 py-1.5 text-sm dark:bg-zinc-800 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
             <input
               type="checkbox"
               checked={recipe.is_public}
               onChange={handlePublicToggle}
               className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600"
+              disabled={!canEdit}
             />
             <span className="text-zinc-600 dark:text-zinc-400">Public</span>
           </label>
@@ -225,7 +255,7 @@ export function TopAppBar() {
           </div>
 
           {/* Selling Price */}
-          {isEditingPrice ? (
+          {isEditingPrice && canEdit ? (
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -244,15 +274,15 @@ export function TopAppBar() {
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setIsEditingPrice(true)}
-              className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+            <div
+              onClick={() => canEdit && setIsEditingPrice(true)}
+              className={canEdit ? "rounded-md bg-zinc-100 px-3 py-1.5 text-sm hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 cursor-pointer" : "rounded-md bg-zinc-100 px-3 py-1.5 text-sm dark:bg-zinc-800"}
             >
               <span className="text-zinc-500">Price:</span>{' '}
               <span className="font-medium">
                 {formatCurrency(recipe.selling_price_est)}
               </span>
-            </button>
+            </div>
           )}
         </div>
       )}
