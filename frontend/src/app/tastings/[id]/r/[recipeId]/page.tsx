@@ -48,6 +48,14 @@ function formatDate(dateString: string): string {
   });
 }
 
+function isSessionExpired(dateString: string): boolean {
+  const sessionDate = new Date(dateString);
+  const today = new Date();
+  sessionDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return sessionDate < today;
+}
+
 const DECISION_CONFIG: Record<
   TastingDecision,
   { label: string; icon: typeof CheckCircle; className: string; badgeVariant: 'success' | 'warning' | 'destructive' }
@@ -100,11 +108,12 @@ function StarRating({ rating, onChange }: { rating: number | null; onChange?: (v
 interface FeedbackNoteCardProps {
   note: TastingNote;
   sessionId: number;
+  isExpired: boolean;
   onUpdate: (noteId: number, data: Partial<TastingNote>) => Promise<void>;
   onDelete: (noteId: number) => Promise<void>;
 }
 
-function FeedbackNoteCard({ note, sessionId, onUpdate, onDelete }: FeedbackNoteCardProps) {
+function FeedbackNoteCard({ note, sessionId, isExpired, onUpdate, onDelete }: FeedbackNoteCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [feedback, setFeedback] = useState(note.feedback || '');
   const [actionItems, setActionItems] = useState(note.action_items || '');
@@ -154,20 +163,22 @@ function FeedbackNoteCard({ note, sessionId, onUpdate, onDelete }: FeedbackNoteC
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => isEditing ? setIsEditing(false) : handleStartEditing()}
-            className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
-          >
-            <Edit className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => onDelete(note.id)}
-            className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-zinc-500 hover:text-red-600"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+        {!isExpired && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => isEditing ? setIsEditing(false) : handleStartEditing()}
+              className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onDelete(note.id)}
+              className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-zinc-500 hover:text-red-600"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent>
@@ -419,7 +430,12 @@ export default function RecipeTastingPage() {
             Feedback ({recipeNotes.length})
           </h2>
           {!showAddForm && (
-            <Button size="sm" onClick={() => setShowAddForm(true)}>
+            <Button
+              size="sm"
+              onClick={() => setShowAddForm(true)}
+              disabled={isSessionExpired(session.date)}
+              title={isSessionExpired(session.date) ? 'Cannot add feedback to past sessions' : undefined}
+            >
               <Plus className="h-4 w-4 mr-1" />
               Add Feedback
             </Button>
@@ -489,6 +505,7 @@ export default function RecipeTastingPage() {
                 key={note.id}
                 note={note}
                 sessionId={sessionId!}
+                isExpired={isSessionExpired(session.date)}
                 onUpdate={handleUpdateNote}
                 onDelete={handleDeleteNote}
               />

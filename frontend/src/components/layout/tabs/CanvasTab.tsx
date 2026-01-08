@@ -419,7 +419,7 @@ function CanvasDropZone({
           canvasRef.current = node;
         }
       }}
-      className={`relative flex-1 min-h-[400px] rounded-lg border-2 border-dashed transition-colors ${isOver
+      className={`relative flex-1 min-h-[500px] rounded-lg border-2 border-dashed transition-colors mb-4 ${isOver
           ? 'border-blue-400 bg-blue-50 dark:border-blue-600 dark:bg-blue-950/30'
           : 'border-zinc-300 dark:border-zinc-700'
         }`}

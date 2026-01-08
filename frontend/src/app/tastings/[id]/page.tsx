@@ -39,11 +39,20 @@ function formatDate(dateString: string): string {
   });
 }
 
+function isSessionExpired(dateString: string): boolean {
+  const sessionDate = new Date(dateString);
+  const today = new Date();
+  sessionDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return sessionDate < today;
+}
+
 interface SessionRecipesSectionProps {
   sessionId: number;
   sessionRecipes: RecipeTasting[];
   allRecipes: Recipe[];
   isLoading: boolean;
+  isExpired: boolean;
   onAddRecipe: (recipeId: number) => void;
   onRemoveRecipe: (recipeId: number) => void;
 }
@@ -53,6 +62,7 @@ function SessionRecipesSection({
   sessionRecipes,
   allRecipes,
   isLoading,
+  isExpired,
   onAddRecipe,
   onRemoveRecipe,
 }: SessionRecipesSectionProps) {
@@ -81,7 +91,12 @@ function SessionRecipesSection({
         </h2>
         <div className="flex items-center gap-2">
           {!showAddRecipe && (
-            <Button size="sm" onClick={() => setShowAddRecipe(true)}>
+            <Button
+              size="sm"
+              onClick={() => setShowAddRecipe(true)}
+              disabled={isExpired}
+              title={isExpired ? 'Cannot add recipes to past sessions' : undefined}
+            >
               <Plus className="h-4 w-4 mr-1" />
               Add Recipe
             </Button>
@@ -278,6 +293,7 @@ export default function TastingSessionDetailPage() {
             sessionRecipes={sessionRecipes || []}
             allRecipes={recipes}
             isLoading={recipesLoading}
+            isExpired={isSessionExpired(session.date)}
             onAddRecipe={handleAddRecipeToSession}
             onRemoveRecipe={handleRemoveRecipeFromSession}
           />

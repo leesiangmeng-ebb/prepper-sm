@@ -27,6 +27,19 @@ const UNIT_OPTIONS = [
   { value: 'pcs', label: 'pcs (pieces)' },
 ];
 
+// Calculate median from an array of numbers
+function calculateMedian(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// Get suppliers that match a specific unit
+function getSuppliersWithUnit(suppliers: { pack_unit: string; cost_per_unit: number }[], unit: string) {
+  return suppliers.filter((s) => s.pack_unit === unit);
+}
+
 // Inline editable select component
 interface EditableSelectProps {
   value: string;
@@ -109,6 +122,19 @@ export default function IngredientPage({ params }: IngredientPageProps) {
     updateIngredientMutation.mutate({ id: ingredientId, data });
   };
 
+  // Recalculate and update median cost based on current suppliers
+  const recalculateMedianCost = (updatedSuppliers: typeof suppliers) => {
+    if (!ingredient) return;
+    const suppliersWithUnit = getSuppliersWithUnit(updatedSuppliers, ingredient.base_unit);
+    const newMedianCost = suppliersWithUnit.length > 0
+      ? calculateMedian(suppliersWithUnit.map((s) => s.cost_per_unit))
+      : null;
+    // Only update if there's a change
+    if (newMedianCost !== ingredient.cost_per_base_unit) {
+      updateIngredientMutation.mutate({ id: ingredientId, data: { cost_per_base_unit: newMedianCost } });
+    }
+  };
+
   const handleArchive = () => {
     deactivateIngredientMutation.mutate(ingredientId, {
       onSuccess: () => toast.success(`${ingredient?.name} archived`),
@@ -127,11 +153,24 @@ export default function IngredientPage({ params }: IngredientPageProps) {
   };
 
   const handleUpdateSupplier = (supplierId: string, data: UpdateIngredientSupplierRequest) => {
-    updateSupplierMutation.mutate({
-      ingredientId,
-      supplierId,
-      data,
-    });
+    updateSupplierMutation.mutate(
+      {
+        ingredientId,
+        supplierId,
+        data,
+      },
+      {
+        onSuccess: () => {
+          // Recalculate median if cost_per_unit or pack_unit changed
+          if (data.cost_per_unit !== undefined || data.pack_unit !== undefined) {
+            const updatedSuppliers = suppliers.map((s) =>
+              s.supplier_id === supplierId ? { ...s, ...data } : s
+            );
+            recalculateMedianCost(updatedSuppliers);
+          }
+        },
+      }
+    );
   };
 
   const [formData, setFormData] = useState({
@@ -149,10 +188,19 @@ export default function IngredientPage({ params }: IngredientPageProps) {
   const suppliersToAdd = availableSuppliers?.filter((s) => !existingSupplierIds.has(s.id.toString())) || [];
 
   const handleDeleteSupplier = (supplierId: string) => {
-    removeSupplierMutation.mutate({
-      ingredientId,
-      supplierId,
-    });
+    removeSupplierMutation.mutate(
+      {
+        ingredientId,
+        supplierId,
+      },
+      {
+        onSuccess: () => {
+          // Recalculate median after removing supplier
+          const updatedSuppliers = suppliers.filter((s) => s.supplier_id !== supplierId);
+          recalculateMedianCost(updatedSuppliers);
+        },
+      }
+    );
   };
 
   const handleAddSupplier = (e: React.FormEvent) => {
@@ -185,6 +233,23 @@ export default function IngredientPage({ params }: IngredientPageProps) {
       {
         onSuccess: () => {
           toast.success(`${selectedSupplier.name} added as supplier`);
+          // Recalculate median after adding supplier
+          const newSupplier = {
+            supplier_id: selectedSupplier.id.toString(),
+            supplier_name: selectedSupplier.name,
+            sku: formData.sku || null,
+            pack_size: parseFloat(formData.pack_size),
+            pack_unit: formData.pack_unit,
+            price_per_pack: parseFloat(formData.price_per_pack),
+            cost_per_unit: parseFloat(formData.unit_cost),
+            currency: "SGD",
+            is_preferred: formData.is_preferred,
+            source: "manual",
+            last_updated: null,
+            last_synced: null,
+          };
+          const updatedSuppliers = [...suppliers, newSupplier];
+          recalculateMedianCost(updatedSuppliers);
           setFormData({
             supplier_id: '',
             sku: '',
@@ -296,21 +361,51 @@ export default function IngredientPage({ params }: IngredientPageProps) {
                     </div>
 
                     <div className="mt-4 space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-zinc-500 dark:text-zinc-400">Unit Cost:</span>
-                        <EditableCell
-                          value={ingredient.cost_per_base_unit?.toString() ?? ''}
-                          onSave={(value) => handleUpdateIngredient({ cost_per_base_unit: value ? parseFloat(value) : null })}
-                          type="number"
-                          className="font-medium text-zinc-900 dark:text-zinc-100"
-                          displayValue={ingredient.cost_per_base_unit !== null ? formatCurrency(ingredient.cost_per_base_unit) : '-'}
-                        />
-                      </div>
+                      {(() => {
+                        const suppliersWithUnit = getSuppliersWithUnit(suppliers, ingredient.base_unit);
+                        const hasSupplierWithUnit = suppliersWithUnit.length > 0;
+                        const medianCost = hasSupplierWithUnit
+                          ? calculateMedian(suppliersWithUnit.map((s) => s.cost_per_unit))
+                          : null;
+                        const displayCost = hasSupplierWithUnit ? medianCost : ingredient.cost_per_base_unit;
+
+                        return (
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-zinc-500 dark:text-zinc-400">Unit Cost:</span>
+                            {hasSupplierWithUnit ? (
+                              <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                                {displayCost !== null ? formatCurrency(displayCost) : '-'}
+                                <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500">
+                                  (median from {suppliersWithUnit.length} supplier{suppliersWithUnit.length > 1 ? 's' : ''})
+                                </span>
+                              </span>
+                            ) : (
+                              <EditableCell
+                                value={ingredient.cost_per_base_unit?.toString() ?? ''}
+                                onSave={(value) => handleUpdateIngredient({ cost_per_base_unit: value ? parseFloat(value) : null })}
+                                type="number"
+                                className="font-medium text-zinc-900 dark:text-zinc-100"
+                                displayValue={ingredient.cost_per_base_unit !== null ? formatCurrency(ingredient.cost_per_base_unit) : '-'}
+                              />
+                            )}
+                          </div>
+                        );
+                      })()}
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-zinc-500 dark:text-zinc-400">Base Unit:</span>
                         <EditableSelect
                           value={ingredient.base_unit}
-                          onSave={(value) => handleUpdateIngredient({ base_unit: value })}
+                          onSave={(newUnit) => {
+                            const suppliersWithNewUnit = getSuppliersWithUnit(suppliers, newUnit);
+                            const newMedianCost = suppliersWithNewUnit.length > 0
+                              ? calculateMedian(suppliersWithNewUnit.map((s) => s.cost_per_unit))
+                              : null;
+                            // Update base_unit and cost_per_base_unit together
+                            handleUpdateIngredient({
+                              base_unit: newUnit,
+                              cost_per_base_unit: newMedianCost,
+                            });
+                          }}
                           options={UNIT_OPTIONS}
                         />
                       </div>
@@ -481,9 +576,6 @@ export default function IngredientPage({ params }: IngredientPageProps) {
                       <thead>
                         <tr className="border-b border-zinc-200 dark:border-zinc-700">
                           <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
-                            Supplier ID
-                          </th>
-                          <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
                             Supplier Name
                           </th>
                           <th className="text-left py-3 px-2 font-medium text-zinc-500 dark:text-zinc-400">
@@ -513,9 +605,6 @@ export default function IngredientPage({ params }: IngredientPageProps) {
                             key={supplier.supplier_id}
                             className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                           >
-                            <td className="py-3 px-2 text-zinc-600 dark:text-zinc-300">
-                              {supplier.supplier_id}
-                            </td>
                             <td className="py-3 px-2 text-zinc-900 dark:text-zinc-100 font-medium">
                               <EditableCell
                                 value={supplier.supplier_name}
