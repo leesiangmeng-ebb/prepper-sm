@@ -11,6 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { GripVertical, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppState } from '@/lib/store';
 import {
   useRecipes,
@@ -20,7 +21,7 @@ import {
   useRecipeIngredients,
   useSubRecipes,
 } from '@/lib/hooks';
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Input, Select, ConfirmModal } from '@/components/ui';
 import { toast } from 'sonner';
 import type { RecipeStatus } from '@/types';
 import { LeftPanel } from '../LeftPanel';
@@ -418,11 +419,10 @@ function CanvasDropZone({
           canvasRef.current = node;
         }
       }}
-      className={`relative flex-1 min-h-[400px] rounded-lg border-2 border-dashed transition-colors ${
-        isOver
+      className={`relative flex-1 min-h-[400px] rounded-lg border-2 border-dashed transition-colors ${isOver
           ? 'border-blue-400 bg-blue-50 dark:border-blue-600 dark:bg-blue-950/30'
           : 'border-zinc-300 dark:border-zinc-700'
-      }`}
+        }`}
     >
       {!hasItems && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -468,12 +468,14 @@ function CanvasContent({
   onIngredientQuantityChange,
   onRecipeQuantityChange,
   onSubmit,
-  onCancel,
+  onReset,
+  onClearAll,
   isSubmitting,
   canvasRef,
   rootRecipeName,
   currentVersion,
   allRecipes,
+  hasUnsavedChanges,
 }: {
   stagedIngredients: StagedIngredient[];
   stagedRecipes: StagedRecipe[];
@@ -484,12 +486,14 @@ function CanvasContent({
   onIngredientQuantityChange: (id: string, quantity: number) => void;
   onRecipeQuantityChange: (id: string, quantity: number) => void;
   onSubmit: () => void;
-  onCancel: () => void;
+  onReset: () => void;
+  onClearAll: () => void;
   isSubmitting: boolean;
   canvasRef: React.RefObject<HTMLDivElement | null>;
   rootRecipeName: string | null;
   currentVersion: number | null;
   allRecipes?: Recipe[];
+  hasUnsavedChanges: boolean;
 }) {
   const hasItems = stagedIngredients.length > 0 || stagedRecipes.length > 0;
 
@@ -575,14 +579,23 @@ function CanvasContent({
             {stagedIngredients.length} ingredient{stagedIngredients.length !== 1 ? 's' : ''},{' '}
             {stagedRecipes.length} item{stagedRecipes.length !== 1 ? 's' : ''}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {hasUnsavedChanges && (
+              <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                Unsaved changes
+              </span>
+            )}
             <Button
               variant="outline"
-              onClick={onCancel}
-              disabled={!hasItems || isSubmitting}
+              onClick={onReset}            >
+              Reset
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onClearAll}
               className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600 dark:border-red-500 dark:text-red-500 dark:hover:bg-red-950 dark:hover:text-red-400"
             >
-              Reset
+              Clear All
             </Button>
             <Button onClick={onSubmit} disabled={!hasItems || isSubmitting}>
               {isSubmitting ? 'Submitting...' : 'Submit'}
@@ -595,6 +608,7 @@ function CanvasContent({
 }
 
 export function CanvasTab() {
+  const router = useRouter();
   const { userId, selectedRecipeId } = useAppState();
   const { data: recipes } = useRecipes();
   const { data: recipeIngredients } = useRecipeIngredients(selectedRecipeId);
@@ -609,8 +623,18 @@ export function CanvasTab() {
   const [stagedRecipes, setStagedRecipes] = useState<StagedRecipe[]>([]);
   const [activeDragItem, setActiveDragItem] = useState<DragItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [loadedRecipeId, setLoadedRecipeId] = useState<number | null>(null);
   const [metadata, setMetadata] = useState<RecipeMetadata>(DEFAULT_METADATA);
+
+  // Track initial state for unsaved changes detection
+  const [initialState, setInitialState] = useState<{
+    ingredientIds: string[];
+    ingredientQuantities: Record<string, number>;
+    recipeIds: string[];
+    recipeQuantities: Record<string, number>;
+    metadata: RecipeMetadata;
+  } | null>(null);
 
   const handleMetadataChange = useCallback((updates: Partial<RecipeMetadata>) => {
     setMetadata((prev) => ({ ...prev, ...updates }));
@@ -624,6 +648,13 @@ export function CanvasTab() {
         setStagedRecipes([]);
         setMetadata(DEFAULT_METADATA);
         setLoadedRecipeId(null);
+        setInitialState({
+          ingredientIds: [],
+          ingredientQuantities: {},
+          recipeIds: [],
+          recipeQuantities: {},
+          metadata: DEFAULT_METADATA,
+        });
       }
       return;
     }
@@ -633,15 +664,17 @@ export function CanvasTab() {
 
     // Load recipe metadata from selected recipe
     const selectedRecipe = recipes?.find((r) => r.id === selectedRecipeId);
-    if (selectedRecipe) {
-      setMetadata({
+    const loadedMetadata: RecipeMetadata = selectedRecipe
+      ? {
         name: selectedRecipe.name,
         yield_quantity: selectedRecipe.yield_quantity,
         yield_unit: selectedRecipe.yield_unit,
         status: selectedRecipe.status,
         is_public: selectedRecipe.is_public,
-      });
-    }
+      }
+      : DEFAULT_METADATA;
+
+    setMetadata(loadedMetadata);
 
     // Load ingredients onto canvas
     const loadedIngredients: StagedIngredient[] = recipeIngredients.map((ri, index) => ({
@@ -693,6 +726,25 @@ export function CanvasTab() {
     setStagedIngredients(loadedIngredients);
     setStagedRecipes(loadedSubRecipes);
     setLoadedRecipeId(selectedRecipeId);
+
+    // Save initial state for change detection
+    const ingredientQuantities: Record<string, number> = {};
+    loadedIngredients.forEach((ing) => {
+      ingredientQuantities[ing.ingredient.id.toString()] = ing.quantity;
+    });
+
+    const recipeQuantities: Record<string, number> = {};
+    loadedSubRecipes.forEach((rec) => {
+      recipeQuantities[rec.recipe.id.toString()] = rec.quantity;
+    });
+
+    setInitialState({
+      ingredientIds: loadedIngredients.map((ing) => ing.ingredient.id.toString()),
+      ingredientQuantities,
+      recipeIds: loadedSubRecipes.map((rec) => rec.recipe.id.toString()),
+      recipeQuantities,
+      metadata: loadedMetadata,
+    });
   }, [selectedRecipeId, recipeIngredients, subRecipes, recipes, loadedRecipeId]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -838,25 +890,93 @@ export function CanvasTab() {
     );
   }, []);
 
-  const handleCancel = useCallback(() => {
+  // Reset to initial loaded state
+  const handleReset = useCallback(() => {
+    if (!initialState) {
+      // No initial state - reset to defaults
+      setMetadata(DEFAULT_METADATA);
+      setStagedIngredients([]);
+      setStagedRecipes([]);
+      return;
+    }
+
+    // Restore metadata from initial state
+    setMetadata(initialState.metadata);
+
+    // Restore ingredients based on initial state
+    if (selectedRecipeId && recipeIngredients && initialState.ingredientIds.length > 0) {
+      const loadedIngredients: StagedIngredient[] = recipeIngredients.map((ri, index) => ({
+        id: `existing-ing-${ri.id}`,
+        ingredient: ri.ingredient || {
+          id: ri.ingredient_id,
+          name: `Ingredient #${ri.ingredient_id}`,
+          base_unit: ri.unit,
+          cost_per_base_unit: ri.unit_price,
+          is_active: true,
+          created_at: '',
+          updated_at: '',
+        },
+        quantity: ri.quantity,
+        x: 20 + (index % 3) * 220,
+        y: 20 + Math.floor(index / 3) * 100,
+      }));
+      setStagedIngredients(loadedIngredients);
+    } else {
+      setStagedIngredients([]);
+    }
+
+    // Restore sub-recipes based on initial state
+    if (selectedRecipeId && subRecipes && initialState.recipeIds.length > 0) {
+      const loadedSubRecipes: StagedRecipe[] = subRecipes.map((sr, index) => {
+        const childRecipe = recipes?.find((r) => r.id === sr.child_recipe_id);
+        return {
+          id: `existing-rec-${sr.id}`,
+          recipe: childRecipe || {
+            id: sr.child_recipe_id,
+            name: `Recipe #${sr.child_recipe_id}`,
+            instructions_raw: null,
+            instructions_structured: null,
+            yield_quantity: 1,
+            yield_unit: 'portion',
+            cost_price: null,
+            selling_price_est: null,
+            status: 'draft' as const,
+            is_prep_recipe: false,
+            is_public: false,
+            owner_id: null,
+            version: 1,
+            root_id: null,
+            created_at: '',
+            updated_at: '',
+            created_by: '',
+          },
+          quantity: sr.quantity,
+          x: 20 + (index % 3) * 220,
+          y: 20 + Math.floor(index / 3) * 100,
+        };
+      });
+      setStagedRecipes(loadedSubRecipes);
+    } else {
+      setStagedRecipes([]);
+    }
+  }, [initialState, selectedRecipeId, recipeIngredients, subRecipes, recipes]);
+
+  // Clear all ingredients and recipes from canvas (keep metadata)
+  const handleClearAll = useCallback(() => {
     setStagedIngredients([]);
     setStagedRecipes([]);
-    setMetadata(DEFAULT_METADATA);
   }, []);
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmitClick = useCallback(() => {
     if (stagedIngredients.length === 0 && stagedRecipes.length === 0) {
       toast.error('Add some ingredients or recipes first');
       return;
     }
+    setShowSubmitModal(true);
+  }, [stagedIngredients.length, stagedRecipes.length]);
 
-    const confirmed = window.confirm(
-      `Are you sure you want to submit this recipe "${metadata.name}" with ${stagedIngredients.length} ingredient(s) and ${stagedRecipes.length} items(s)?`
-    );
-    if (!confirmed) {
-      return;
-    }
-
+  const handleSubmitConfirm = useCallback(async () => {
+    setShowSubmitModal(false);
     setIsSubmitting(true);
 
     // Determine version and root_id based on selected recipe
@@ -921,54 +1041,145 @@ export function CanvasTab() {
       setMetadata(DEFAULT_METADATA);
 
       toast.success('Recipe created successfully!');
+
+      // Redirect to recipes page
+      router.push('/recipes');
     } catch {
       toast.error('Failed to create recipe');
     } finally {
       setIsSubmitting(false);
     }
-  }, [stagedIngredients, stagedRecipes, metadata, createRecipe, addIngredient, addSubRecipe, userId, selectedRecipeId, recipes]);
+  }, [stagedIngredients, stagedRecipes, metadata, createRecipe, addIngredient, addSubRecipe, userId, selectedRecipeId, recipes, router]);
+
+  // Determine if there are  by comparing to initial state
+  const hasUnsavedChanges = (() => {
+    if (!initialState) {
+      // No initial state yet - check if anything has been added
+      return (
+        stagedIngredients.length > 0 ||
+        stagedRecipes.length > 0 ||
+        metadata.name !== DEFAULT_METADATA.name ||
+        metadata.yield_quantity !== DEFAULT_METADATA.yield_quantity ||
+        metadata.yield_unit !== DEFAULT_METADATA.yield_unit ||
+        metadata.status !== DEFAULT_METADATA.status ||
+        metadata.is_public !== DEFAULT_METADATA.is_public
+      );
+    }
+
+    // Check metadata changes
+    if (
+      metadata.name !== initialState.metadata.name ||
+      metadata.yield_quantity !== initialState.metadata.yield_quantity ||
+      metadata.yield_unit !== initialState.metadata.yield_unit ||
+      metadata.status !== initialState.metadata.status ||
+      metadata.is_public !== initialState.metadata.is_public
+    ) {
+      return true;
+    }
+
+    // Check ingredient changes (added/removed)
+    const currentIngredientIds = stagedIngredients.map((ing) => ing.ingredient.id.toString());
+    if (currentIngredientIds.length !== initialState.ingredientIds.length) {
+      return true;
+    }
+    const ingredientIdsMatch =
+      currentIngredientIds.every((id) => initialState.ingredientIds.includes(id)) &&
+      initialState.ingredientIds.every((id) => currentIngredientIds.includes(id));
+    if (!ingredientIdsMatch) {
+      return true;
+    }
+
+    // Check ingredient quantity changes
+    for (const ing of stagedIngredients) {
+      const initialQty = initialState.ingredientQuantities[ing.ingredient.id.toString()];
+      if (initialQty !== ing.quantity) {
+        return true;
+      }
+    }
+
+    // Check recipe changes (added/removed)
+    const currentRecipeIds = stagedRecipes.map((rec) => rec.recipe.id.toString());
+    if (currentRecipeIds.length !== initialState.recipeIds.length) {
+      return true;
+    }
+    const recipeIdsMatch =
+      currentRecipeIds.every((id) => initialState.recipeIds.includes(id)) &&
+      initialState.recipeIds.every((id) => currentRecipeIds.includes(id));
+    if (!recipeIdsMatch) {
+      return true;
+    }
+
+    // Check recipe quantity changes
+    for (const rec of stagedRecipes) {
+      const initialQty = initialState.recipeQuantities[rec.recipe.id.toString()];
+      if (initialQty !== rec.quantity) {
+        return true;
+      }
+    }
+
+    return false;
+  })();
+
+  // Sync unsaved changes state to the global store for tab switching prompt
+  const { setCanvasHasUnsavedChanges } = useAppState();
+  useEffect(() => {
+    setCanvasHasUnsavedChanges(hasUnsavedChanges);
+  }, [hasUnsavedChanges, setCanvasHasUnsavedChanges]);
 
   return (
-    <DndContext
-      collisionDetection={pointerWithin}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <LeftPanel />
-      <CanvasContent
-        stagedIngredients={stagedIngredients}
-        stagedRecipes={stagedRecipes}
-        metadata={metadata}
-        onMetadataChange={handleMetadataChange}
-        onRemoveIngredient={handleRemoveIngredient}
-        onRemoveRecipe={handleRemoveRecipe}
-        onIngredientQuantityChange={handleIngredientQuantityChange}
-        onRecipeQuantityChange={handleRecipeQuantityChange}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isSubmitting={isSubmitting}
-        canvasRef={canvasRef}
-        rootRecipeName={(() => {
-          const selectedRecipe = selectedRecipeId ? recipes?.find((r) => r.id === selectedRecipeId) : null;
-          if (!selectedRecipe?.root_id) return null;
-          return recipes?.find((r) => r.id === selectedRecipe.root_id)?.name ?? null;
-        })()}
-        currentVersion={(() => {
-          const selectedRecipe = selectedRecipeId ? recipes?.find((r) => r.id === selectedRecipeId) : null;
-          return selectedRecipe?.version ?? null;
-        })()}
-        allRecipes={recipes}
+    <>
+      <DndContext
+        collisionDetection={pointerWithin}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <CanvasContent
+          stagedIngredients={stagedIngredients}
+          stagedRecipes={stagedRecipes}
+          metadata={metadata}
+          onMetadataChange={handleMetadataChange}
+          onRemoveIngredient={handleRemoveIngredient}
+          onRemoveRecipe={handleRemoveRecipe}
+          onIngredientQuantityChange={handleIngredientQuantityChange}
+          onRecipeQuantityChange={handleRecipeQuantityChange}
+          onSubmit={handleSubmitClick}
+          onReset={handleReset}
+          onClearAll={handleClearAll}
+          isSubmitting={isSubmitting}
+          canvasRef={canvasRef}
+          rootRecipeName={(() => {
+            const selectedRecipe = selectedRecipeId ? recipes?.find((r) => r.id === selectedRecipeId) : null;
+            if (!selectedRecipe?.root_id) return null;
+            return recipes?.find((r) => r.id === selectedRecipe.root_id)?.name ?? null;
+          })()}
+          currentVersion={(() => {
+            const selectedRecipe = selectedRecipeId ? recipes?.find((r) => r.id === selectedRecipeId) : null;
+            return selectedRecipe?.version ?? null;
+          })()}
+          allRecipes={recipes}
+          hasUnsavedChanges={hasUnsavedChanges}
+        />
+        <RightPanel />
+        <DragOverlay>
+          {activeDragItem && (
+            <DragOverlayContent
+              item={activeDragItem}
+              stagedIngredients={stagedIngredients}
+              stagedRecipes={stagedRecipes}
+            />
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      <ConfirmModal
+        isOpen={showSubmitModal}
+        onClose={() => setShowSubmitModal(false)}
+        onConfirm={handleSubmitConfirm}
+        title="Submit Recipe"
+        message={`Are you sure you want to submit "${metadata.name}" with ${stagedIngredients.length} ingredient(s) and ${stagedRecipes.length} sub-recipe(s)?`}
+        confirmLabel="Submit"
+        cancelLabel="Cancel"
       />
-      <RightPanel />
-      <DragOverlay>
-        {activeDragItem && (
-          <DragOverlayContent
-            item={activeDragItem}
-            stagedIngredients={stagedIngredients}
-            stagedRecipes={stagedRecipes}
-          />
-        )}
-      </DragOverlay>
-    </DndContext>
+    </>
   );
 }

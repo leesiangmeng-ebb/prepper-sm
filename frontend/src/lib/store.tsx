@@ -40,6 +40,7 @@ interface AppState {
   selectedRecipeId: number | null;
   instructionsTab: 'freeform' | 'steps';
   canvasTab: CanvasTab;
+  canvasHasUnsavedChanges: boolean;
   userId: string | null;
   jwt: string | null;
   userType: 'normal' | 'admin' | null;
@@ -49,6 +50,7 @@ interface AppContextValue extends AppState {
   selectRecipe: (id: number | null) => void;
   setInstructionsTab: (tab: 'freeform' | 'steps') => void;
   setCanvasTab: (tab: CanvasTab) => void;
+  setCanvasHasUnsavedChanges: (hasChanges: boolean) => void;
   setUserId: (id: string | null) => void;
   setJwt: (jwt: string | null) => void;
   setUserType: (userType: 'normal' | 'admin' | null) => void;
@@ -64,6 +66,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectedRecipeId: null,
     instructionsTab: 'freeform',
     canvasTab: 'canvas',
+    canvasHasUnsavedChanges: false,
     userId: null,
     jwt: null,
     userType: null
@@ -104,6 +107,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, canvasTab: tab }));
   }, []);
 
+  const setCanvasHasUnsavedChanges = useCallback((hasChanges: boolean) => {
+    setState((prev) => ({ ...prev, canvasHasUnsavedChanges: hasChanges }));
+  }, []);
+
   const setUserId = useCallback((id: string | null) => {
     setState((prev) => ({ ...prev, userId: id }));
   }, []);
@@ -131,6 +138,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         selectRecipe,
         setInstructionsTab,
         setCanvasTab,
+        setCanvasHasUnsavedChanges,
         setUserId,
         setJwt,
         setUserType,

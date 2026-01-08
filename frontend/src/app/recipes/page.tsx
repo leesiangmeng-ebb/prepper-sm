@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
-import { useCreateRecipe, useRecipes } from '@/lib/hooks';
+import { useRecipes } from '@/lib/hooks';
 import { RecipeCard } from '@/components/recipes';
 import { PageHeader, SearchInput, Select, GroupSection, Button, Skeleton } from '@/components/ui';
-import { toast } from 'sonner';
 import { useAppState } from '@/lib/store';
 import type { Recipe, RecipeStatus } from '@/types';
 
@@ -53,9 +53,9 @@ function groupRecipes(recipes: Recipe[], groupBy: GroupByOption): Record<string,
 }
 
 export default function RecipesPage() {
-  const { userId, userType } = useAppState()
+  const router = useRouter();
+  const { userId, userType, selectRecipe, setCanvasTab } = useAppState();
   const { data: recipes, isLoading, error } = useRecipes();
-  const createRecipe = useCreateRecipe();
 
   const [search, setSearch] = useState('');
   const [groupBy, setGroupBy] = useState<GroupByOption>('status');
@@ -90,23 +90,10 @@ export default function RecipesPage() {
   }, [recipes, search, statusFilter, userId, userType]);
 
   const handleCreate = () => {
-    createRecipe.mutate(
-      {
-        name: 'Untitled Recipe',
-        yield_quantity: 10,
-        yield_unit: 'portion',
-        status: 'draft',
-        created_by: userId || undefined,
-        is_public: false,
-        owner_id: userId || undefined,
-      },
-      {
-        onSuccess: (newRecipe) => {
-          toast.success('Recipe created');
-        },
-        onError: () => toast.error('Failed to create recipe'),
-      }
-    );
+    // Clear selected recipe and navigate to canvas for new recipe creation
+    selectRecipe(null);
+    setCanvasTab('canvas');
+    router.push('/');
   };
 
   const groupedRecipes = useMemo(() => {
@@ -130,7 +117,7 @@ export default function RecipesPage() {
           title="Recipes"
           description="Browse and manage your recipe collection"
         >
-          <Button onClick={handleCreate} disabled={createRecipe.isPending}>
+          <Button onClick={handleCreate}>
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">New Recipe</span>
           </Button>
