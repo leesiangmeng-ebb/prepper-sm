@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo, useCallback, memo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ReactFlow,
   Background,
-  Controls,
   Handle,
   Position,
   MarkerType,
@@ -29,17 +29,17 @@ const STATUS_VARIANTS: Record<RecipeStatus, 'default' | 'success' | 'warning' | 
 interface VersionNodeData extends Record<string, unknown> {
   recipe: Recipe;
   isCurrentRecipe: boolean;
-  onSelect: (id: number) => void;
+  onNavigate: (id: number) => void;
 }
 
 type VersionNodeType = Node<VersionNodeData, 'versionNode'>;
 
 const VersionNode = memo(({ data }: NodeProps<VersionNodeType>) => {
-  const { recipe, isCurrentRecipe, onSelect } = data;
+  const { recipe, isCurrentRecipe, onNavigate } = data;
 
   return (
     <div
-      onClick={() => onSelect(recipe.id)}
+      onClick={() => onNavigate(recipe.id)}
       className={cn(
         'cursor-pointer rounded-lg border p-4 transition-all hover:shadow-md min-w-[280px] max-w-[320px]',
         isCurrentRecipe
@@ -49,7 +49,7 @@ const VersionNode = memo(({ data }: NodeProps<VersionNodeType>) => {
     >
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!bg-zinc-400 !w-2 !h-2 !border-0"
       />
 
@@ -89,7 +89,7 @@ const VersionNode = memo(({ data }: NodeProps<VersionNodeType>) => {
 
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         className="!bg-zinc-400 !w-2 !h-2 !border-0"
       />
     </div>
@@ -105,7 +105,7 @@ const nodeTypes = {
 function buildVersionGraph(
   versions: Recipe[],
   selectedRecipeId: number | null,
-  onSelect: (id: number) => void
+  onNavigate: (id: number) => void
 ): { nodes: VersionNodeType[]; edges: Edge[] } {
   if (!versions.length) return { nodes: [], edges: [] };
 
@@ -137,10 +137,11 @@ function buildVersionGraph(
   }
 
   // Layout nodes using a tree structure (BFS for level assignment)
-  const NODE_HEIGHT = 100;
-  const VERTICAL_SPACING = 80;
+  // Horizontal layout: levels go left to right
   const NODE_WIDTH = 320;
-  const HORIZONTAL_SPACING = 40;
+  const NODE_HEIGHT = 120;
+  const HORIZONTAL_SPACING = 80;
+  const VERTICAL_SPACING = 40;
 
   // Assign levels (depth) to each node using BFS
   const levelMap = new Map<number, number>();
@@ -180,19 +181,20 @@ function buildVersionGraph(
     }
   }
 
-  // Calculate x positions for each node based on its position within its level
+  // Calculate positions for horizontal layout (left to right)
+  // X = level (depth), Y = position within level
   const positionMap = new Map<number, { x: number; y: number }>();
   const maxLevel = Math.max(...Array.from(nodesAtLevel.keys()));
 
   for (let level = 0; level <= maxLevel; level++) {
     const nodesInLevel = nodesAtLevel.get(level) || [];
-    const totalWidth = nodesInLevel.length * NODE_WIDTH + (nodesInLevel.length - 1) * HORIZONTAL_SPACING;
-    const startX = -totalWidth / 2 + NODE_WIDTH / 2;
+    const totalHeight = nodesInLevel.length * NODE_HEIGHT + (nodesInLevel.length - 1) * VERTICAL_SPACING;
+    const startY = -totalHeight / 2 + NODE_HEIGHT / 2;
 
     nodesInLevel.forEach((recipe, index) => {
       positionMap.set(recipe.id, {
-        x: startX + index * (NODE_WIDTH + HORIZONTAL_SPACING),
-        y: level * (NODE_HEIGHT + VERTICAL_SPACING),
+        x: level * (NODE_WIDTH + HORIZONTAL_SPACING),
+        y: startY + index * (NODE_HEIGHT + VERTICAL_SPACING),
       });
     });
   }
@@ -207,7 +209,7 @@ function buildVersionGraph(
       data: {
         recipe,
         isCurrentRecipe: recipe.id === selectedRecipeId,
-        onSelect,
+        onNavigate,
       },
       draggable: false,
       selectable: false,
@@ -252,17 +254,18 @@ function VersionTreeSkeleton() {
 }
 
 export function VersionsTab() {
-  const { selectedRecipeId, selectRecipe } = useAppState();
+  const router = useRouter();
+  const { selectedRecipeId } = useAppState();
   const { data: versions, isLoading, error } = useRecipeVersions(selectedRecipeId);
 
-  const handleNodeSelect = useCallback((id: number) => {
-    selectRecipe(id);
-  }, [selectRecipe]);
+  const handleNodeNavigate = useCallback((id: number) => {
+    router.push(`/recipes/${id}`);
+  }, [router]);
 
   const { nodes, edges } = useMemo(() => {
     if (!versions) return { nodes: [], edges: [] };
-    return buildVersionGraph(versions, selectedRecipeId, handleNodeSelect);
-  }, [versions, selectedRecipeId, handleNodeSelect]);
+    return buildVersionGraph(versions, selectedRecipeId, handleNodeNavigate);
+  }, [versions, selectedRecipeId, handleNodeNavigate]);
 
   if (!selectedRecipeId) {
     return (
@@ -323,39 +326,33 @@ export function VersionsTab() {
         </Badge>
       </div>
 
-      {/* React Flow Canvas */}
+      {/* React Flow Canvas - scroll to pan, zoom disabled */}
       <div className="flex-1 min-h-[400px]">
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{
-            padding: 0.4,
-            minZoom: 0.5,
-            maxZoom: 1.5,
-          }}
+          defaultViewport={{ x: 50, y: 200, zoom: 1 }}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
-          panOnDrag={true}
-          zoomOnScroll={true}
-          zoomOnPinch={true}
-          preventScrolling={true}
+          panOnDrag={false}
+          panOnScroll={true}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
+          minZoom={1}
+          maxZoom={1}
           proOptions={{ hideAttribution: true }}
         >
           <Background color="#e4e4e7" gap={16} />
-          <Controls
-            showInteractive={false}
-            className="!bg-white !border-zinc-200 dark:!bg-zinc-800 dark:!border-zinc-700 !shadow-sm"
-          />
         </ReactFlow>
       </div>
 
       {/* Footer hint */}
       <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 text-center">
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Click a version node to switch to that recipe
+          Click a version node to view that recipe
         </p>
       </div>
     </div>
