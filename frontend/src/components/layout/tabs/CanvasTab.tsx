@@ -327,6 +327,8 @@ function CanvasContent({
   onCancel,
   isSubmitting,
   canvasRef,
+  rootRecipeName,
+  currentVersion,
 }: {
   stagedIngredients: StagedIngredient[];
   stagedRecipes: StagedRecipe[];
@@ -340,6 +342,8 @@ function CanvasContent({
   onCancel: () => void;
   isSubmitting: boolean;
   canvasRef: React.RefObject<HTMLDivElement | null>;
+  rootRecipeName: string | null;
+  currentVersion: number | null;
 }) {
   const hasItems = stagedIngredients.length > 0 || stagedRecipes.length > 0;
 
@@ -348,12 +352,20 @@ function CanvasContent({
       <div className="flex-1 overflow-y-auto p-6">
         {/* Recipe Metadata Header */}
         <div className="mb-6 space-y-4">
-          <Input
-            value={metadata.name}
-            onChange={(e) => onMetadataChange({ name: e.target.value })}
-            placeholder="Recipe name"
-            className="text-lg font-semibold h-12"
-          />
+          <div>
+            <Input
+              value={metadata.name}
+              onChange={(e) => onMetadataChange({ name: e.target.value })}
+              placeholder="Recipe name"
+              className="text-lg font-semibold h-12"
+            />
+            {(rootRecipeName || currentVersion) && (
+              <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1">
+                {<>Based on: {rootRecipeName ? rootRecipeName : "N/A "}</>}
+                {currentVersion && <> . Version {currentVersion}</>}
+              </p>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="text-sm text-zinc-500">Yield:</label>
@@ -514,6 +526,8 @@ export function CanvasTab() {
           is_prep_recipe: false,
           is_public: false,
           owner_id: null,
+          version: 1,
+          root_id: null,
           created_at: '',
           updated_at: '',
           created_by: '',
@@ -686,6 +700,14 @@ export function CanvasTab() {
 
     setIsSubmitting(true);
 
+    // Determine version and root_id based on selected recipe
+    const selectedRecipe = selectedRecipeId
+      ? recipes?.find((r) => r.id === selectedRecipeId)
+      : null;
+    const version = selectedRecipe ? selectedRecipe.version + 1 : 1;
+    // root_id points to the recipe this new version is based on
+    const root_id = selectedRecipe ? selectedRecipe.id : null;
+
     try {
       // Create a new recipe
       const newRecipe = await createRecipe.mutateAsync({
@@ -696,6 +718,8 @@ export function CanvasTab() {
         created_by: userId || undefined,
         is_public: metadata.is_public,
         owner_id: userId || undefined,
+        version,
+        root_id,
       });
 
       // Add all staged ingredients
@@ -743,7 +767,7 @@ export function CanvasTab() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [stagedIngredients, stagedRecipes, metadata, createRecipe, addIngredient, addSubRecipe, userId]);
+  }, [stagedIngredients, stagedRecipes, metadata, createRecipe, addIngredient, addSubRecipe, userId, selectedRecipeId, recipes]);
 
   return (
     <DndContext
@@ -765,6 +789,15 @@ export function CanvasTab() {
         onCancel={handleCancel}
         isSubmitting={isSubmitting}
         canvasRef={canvasRef}
+        rootRecipeName={(() => {
+          const selectedRecipe = selectedRecipeId ? recipes?.find((r) => r.id === selectedRecipeId) : null;
+          if (!selectedRecipe?.root_id) return null;
+          return recipes?.find((r) => r.id === selectedRecipe.root_id)?.name ?? null;
+        })()}
+        currentVersion={(() => {
+          const selectedRecipe = selectedRecipeId ? recipes?.find((r) => r.id === selectedRecipeId) : null;
+          return selectedRecipe?.version ?? null;
+        })()}
       />
       <RightPanel />
       <DragOverlay>

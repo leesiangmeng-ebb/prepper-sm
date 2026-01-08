@@ -26,6 +26,8 @@ export interface Recipe {
   is_prep_recipe: boolean;
   is_public: boolean;
   owner_id: string | null;
+  version: number;
+  root_id: number | null;
   created_at: string;
   updated_at: string;
   ingredients?: RecipeIngredient[];
@@ -102,6 +104,8 @@ export interface CreateRecipeRequest {
   created_by?: string;
   is_public?: boolean;
   owner_id?: string;
+  version?: number;
+  root_id?: number | null;
 }
 
 export interface UpdateRecipeRequest {

@@ -119,9 +119,15 @@ export function OverviewTab() {
                         <p className="text-zinc-500 dark:text-zinc-400 mt-1">
                           Yield: {recipe.yield_quantity} {recipe.yield_unit}
                         </p>
+                        {recipe.root_id && (
+                          <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1">
+                            Forked from: {allRecipes?.find((r) => r.id === recipe.root_id)?.name || `Recipe #${recipe.root_id}`}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2">
+                        <Badge variant="secondary">v{recipe.version}</Badge>
                         {userId !== null && recipe.owner_id === userId && (
                           <Badge className="bg-black text-white dark:bg-white dark:text-black">Owned</Badge>
                         )}

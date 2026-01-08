@@ -47,6 +47,14 @@ class Recipe(RecipeBase, table=True):
     is_public: bool = Field(default=False)
     owner_id: str | None = Field(default=None)
 
+    # Versioning
+    version: int = Field(default=1, description="Version number of this recipe")
+    root_id: int | None = Field(
+        default=None,
+        foreign_key="recipes.id",
+        description="ID of the original recipe this was forked from",
+    )
+
     # Authorship tracking
     created_by: str | None = Field(default=None, max_length=100)
     updated_by: str | None = Field(default=None, max_length=100)
@@ -63,6 +71,8 @@ class RecipeCreate(RecipeBase):
     is_public: bool = False
     created_by: str | None = None
     owner_id: str | None = None
+    version: int = 1
+    root_id: int | None = None
 
 
 class RecipeUpdate(SQLModel):
