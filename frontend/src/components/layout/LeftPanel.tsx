@@ -239,7 +239,7 @@ export function LeftPanel() {
                   isSelected={recipe.id === selectedRecipeId}
                   canEdit={canEditRecipe}
                   isOwned={isOwned}
-                  onClick={() => selectRecipe(recipe.id)}
+                  onClick={() => selectRecipe(recipe.id === selectedRecipeId ? null : recipe.id)}
                   onDelete={() => handleDelete(recipe.id)}
                 />
               );

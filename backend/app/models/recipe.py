@@ -59,6 +59,8 @@ class Recipe(RecipeBase, table=True):
 class RecipeCreate(RecipeBase):
     """Schema for creating a new recipe."""
 
+    status: RecipeStatus = RecipeStatus.DRAFT
+    is_public: bool = False
     created_by: str | None = None
     owner_id: str | None = None
 
